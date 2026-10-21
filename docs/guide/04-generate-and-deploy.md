@@ -176,6 +176,12 @@ Work in the **generated repository** from here on.
    when the sandbox subscription was set in the wizard before it ran, so set it and
    re-run the broker (see the [credentials checklist](02-credentials-checklist.md)).
 
+   One more, on the Azure Storage backend: the **first** pull-request plan for a layer
+   that has never been applied can fail at `terraform init` with `failed to lock azure
+   state`. That layer's state file does not exist yet, Terraform tries to create it, and
+   the read-only plan identity cannot. It is a known gap, not something you did wrong
+   ([issue #140](https://github.com/saulpatinojr/Template-LZDeployment/issues/140)).
+
 The landing zone is now stored and managed from the customer repository:
 changes go through PRs there, plans run read-only on PRs, applies run through
 gated environments on merge.
