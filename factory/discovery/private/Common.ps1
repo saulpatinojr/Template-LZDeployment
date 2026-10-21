@@ -12,7 +12,7 @@
 
     Every probe therefore returns one of five discrete states, and `Empty` and
     `Forbidden` are distinct values that never collapse into each other. This
-    implements control BR2 from the Factory-Design wiki page (https://github.com/HybridCloudWorks/Template-LZDeployment/wiki/Factory-Design).
+    implements control BR2 from the Factory-Design record (https://github.com/saulpatinojr/Template-LZDeployment/blob/main/docs/factory/factory-design.md).
 
     READ-ONLY GUARANTEE
     -------------------

@@ -109,6 +109,8 @@ Template-LZDeployment/
 ├── release-readiness.sh          # Stage 14 strict Bash launcher
 ├── docs/
 │   ├── USER-CHECKLIST.md         # Operator authentication, publication, and verification
+│   ├── guide/                    # Operator guide: the four-step walkthrough for one customer
+│   ├── factory/                  # Factory design record, risk register, Stage 7–14 records
 │   ├── decisions/                # Decision records
 │   ├── runbooks/                 # Operator procedures
 │   └── wiki-review/              # 2026-08-06 wiki source-material review evidence
@@ -282,7 +284,9 @@ See [TODO.md](TODO.md) (all action items, phased) and [REVIEW.md](REVIEW.md) (hu
 
 ## Documentation
 
-- **[GitHub wiki](https://github.com/HybridCloudWorks/Template-LZDeployment/wiki)** — build docs, factory design and Stage 7–14 readiness records, and the webapp/static-generator docs (migrated from `docs/` on 2026-08-01)
+- **[Operator guide](docs/guide/README.md)** — the four-step walkthrough for running one customer engagement, start to finish
+- **[Factory design record](docs/factory/README.md)** — the architecture, the risk register, and the Stage 7–14 completion records
+- **[GitHub wiki](https://github.com/saulpatinojr/Template-LZDeployment/wiki)** — historical material only: the pre-factory plan, architecture and standards, and the webapp/static-generator docs
 - **[TODO.md](TODO.md)** — all action items repo-wide, phased for handoff
 - **[REVIEW.md](REVIEW.md)** — blockers only a human-in-the-loop can resolve
 - **[CHANGELOG.md](CHANGELOG.md)** — changelog of shipped features, with verification notes and the archived `HANDOFF.md` decisions
