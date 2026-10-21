@@ -16,12 +16,21 @@
 > pre-removal state.
 
 
-Source-controlled agents, skills, slash commands, and tool configuration for this
-repository. Everything under `.claude/` loads automatically when Claude Code opens
-the repo — there is nothing to install. This page is the **inventory and
-provenance record**; the *rules* for when capabilities get used, how usage is
-reported, and what is denied live in [CLAUDE.md](../CLAUDE.md) (routing §1,
-reporting §§2–4, guardrails §5) and are not duplicated here.
+**In plain terms:** until 2026-08-27 this repository carried its own set of
+AI-assistant helpers — *agents* (specialist roles the assistant could hand work
+to), *skills* (packaged instructions), *slash commands* (shortcuts such as
+`/lz-plan`), and tool connections. They now live in the operator's workspace, so
+none of them are in the repo. You can skip this page unless you want the history
+of what was there and why it left. Nothing on it needs doing.
+
+This page is the **inventory and provenance record** of the removed set. The rules
+that still apply live in [CLAUDE.md](../CLAUDE.md): what this repo is (§0), the
+note that orchestration config is workspace-level (§1), and the guardrails (§5).
+The old routing table, usage report and report toggle (formerly §§1–4) were
+removed together with the files they described — see
+[decision 0021](decisions/0021-orchestration-config-moves-to-workspace.md).
+
+Everything below describes the repo **as it stood before the removal**.
 
 ```
 .claude/
@@ -29,20 +38,21 @@ reporting §§2–4, guardrails §5) and are not duplicated here.
 ├── commands/    3 slash commands
 ├── skills/      95 skills, flat namespace
 ├── hooks/       agent-report.ps1 (Stop hook)
-└── settings.json
-.mcp.json        Azure + Microsoft Learn MCP servers (repo root)
+└── settings.json   (the only file here that is still in the repo)
+.mcp.json        Azure + Microsoft Learn MCP servers (repo root; removed in PR #112)
 ```
 
 Per the dot-prefixed-folder policy
 ([decision 0008](decisions/0008-dot-prefixed-folders-are-configuration-only.md)),
-`.claude/` holds tooling configuration only — the files above are what Claude
-Code itself reads. Documentation about them (this page, the contracts register,
+`.claude/` holds tooling configuration only (today, just `settings.json`) — the
+files above were what Claude Code itself read. Documentation about them (this page, the contracts register,
 the portable-kit runbook) lives in `docs/`.
 
 ## Agents
 
-`alz-orchestrator` is the entry point for anything spanning more than one domain.
-It reads `TODO.md` and `docs/` first, decomposes the request, and delegates.
+*(Removed 2026-08-27.)* `alz-orchestrator` was the entry point for anything
+spanning more than one domain. It read `TODO.md` and `docs/` first, decomposed the
+request, and delegated.
 
 | Agent | Owns | Typical trigger |
 | --- | --- | --- |
@@ -59,6 +69,8 @@ It reads `TODO.md` and `docs/` first, decomposes the request, and delegates.
 
 ## Commands
 
+*(Removed 2026-08-27.)*
+
 | Command | Does |
 | --- | --- |
 | `/lz-plan <change>` | Full plan across design → Terraform → pipeline → cost → docs |
@@ -67,8 +79,9 @@ It reads `TODO.md` and `docs/` first, decomposes the request, and delegates.
 
 ## Skills
 
-95 skills in a flat namespace under `.claude/skills/`. Cross-references between
-skills in the same pack are preserved.
+*(Removed 2026-08-27; the repo now ships no skills.)* The repo carried 95 skills
+in a flat namespace under `.claude/skills/`. Cross-references between skills in the
+same pack were preserved.
 
 | Pack | Count | Skills |
 | --- | --- | --- |
@@ -96,7 +109,9 @@ skills in the same pack are preserved.
 
 ## Tools
 
-`.mcp.json` at the repo root declares two MCP servers:
+*(Removed 2026-08-27 in PR #112.)* `.mcp.json` at the repo root declared two MCP
+servers (MCP = Model Context Protocol, a standard way to plug outside tools and
+data into the assistant):
 
 - **`azure`** — `@azure/mcp` via `npx`. Backs the Azure skills' live subscription
   queries (resource lookup, cost, quotas, diagnostics). Uses your existing `az`
@@ -104,23 +119,26 @@ skills in the same pack are preserved.
 - **`microsoft-learn`** — remote HTTP server for grounding Azure claims in current
   Microsoft Learn documentation instead of model recall.
 
-The four `notion-*` skills additionally need Notion's MCP server; it is not
-declared here because it requires a personal credential. Connect it yourself if
-you use those skills.
+The four `notion-*` skills additionally needed Notion's MCP server; it was not
+declared here because it required a personal credential. Users connected it
+themselves when they used those skills.
 
 ## Capability usage report
 
-`.claude/hooks/agent-report.ps1` is registered in `settings.json` as a **`Stop`**
-hook, toggled by `.claude/agent-report.json`. It counts `tool_use` records from
-the session transcript and never blocks a turn. This is local-only — nothing is
-transmitted anywhere, unlike the Azure pack's unimported telemetry hooks above.
-The report and toggle rules are [CLAUDE.md](../CLAUDE.md) §§2–4; to replicate the
-setup in another repo, see the
+*(Removed 2026-08-27 — `settings.json` no longer registers any hook.)*
+`.claude/hooks/agent-report.ps1` was registered in `settings.json` as a **`Stop`**
+hook (one that runs when the assistant finishes a task), toggled by
+`.claude/agent-report.json`. It counted `tool_use` records from the session
+transcript and never blocked a turn. It was local-only — nothing was transmitted
+anywhere, unlike the Azure pack's unimported telemetry hooks above. The report and
+toggle rules were CLAUDE.md §§2–4, which were removed along with the hook
+([decision 0021](decisions/0021-orchestration-config-moves-to-workspace.md)). To reuse the pattern in another repo, see the
 [portable kit runbook](runbooks/agent-report-portable-kit.md).
 
 ## Guardrails
 
 `.claude/settings.json` allowlists routine read-only commands and denies the
 operations that can destroy this landing zone — the authoritative list is
-[CLAUDE.md](../CLAUDE.md) §5. Every agent definition repeats the same rule:
-produce the plan or the change, then stop. Applying it is the operator's call.
+[CLAUDE.md](../CLAUDE.md) §5, and **this part is still live**. Every (now removed)
+agent definition repeated the same rule, and §5 still states it: produce the plan
+or the change, then stop. Applying it is the operator's call.
