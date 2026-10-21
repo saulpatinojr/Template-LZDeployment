@@ -24,7 +24,7 @@ The product has four planes:
 | **Config plane** | `site/` — local static wizard | Operator workstation, `file://` | Nothing. Pure client-side. |
 | **Broker plane** | `bootstrap-broker.ps1` / `.sh` | Operator workstation | Entra, Azure RBAC, GitHub, HCP TFC |
 | **Scaffold plane** | `scaffold-copy.ps1` / `.sh` | Operator workstation | Local FS + `git push` |
-| **Runtime plane** | Generated repo's workflows + Terraform | GitHub Actions (OIDC) | Azure only |
+| **Runtime plane** | Generated repo's workflows + Terraform | GitHub Actions (OIDC) | Azure, and HCP Terraform when that is the chosen state backend ([decision 0023](../decisions/0023-hcp-terraform-for-state-only.md)) |
 
 The **only** manual step that cannot be automated is the initial human consent: an operator
 must be signed in to `az`, `gh`, and hold a TFC token. Everything downstream is idempotent
@@ -186,7 +186,7 @@ Severity: **H**igh / **M**edium / **L**ow. Every High risk has a named control.
 
 | ID | Risk | Sev | Control |
 |---|---|---|---|
-| GH1 | Personal accounts cannot use environments/branch protection on private repos. | H | Discovery detects plan tier; broker degrades gracefully and **reports the reduced control set explicitly** rather than silently skipping. |
+| GH1 | GitHub limits environments, environment required reviewers and branch protection by plan **for private repositories**, which the factory always creates. Free (personal or organization) has no environments or branch protection; Pro and Team have both but cannot use environment required reviewers (Enterprise only). | H | Discovery reads the plan and reports every control the plan cannot provide as a named **Warning**, rather than skipping it silently; an unknown plan is reported as a blind spot, never a pass. The matrix, with sources, is in the [credentials checklist](../guide/02-credentials-checklist.md). |
 | GH2 | Org policy blocks Actions or requires allow-listed actions. | M | Discovery reads org Actions policy; readiness WARN with remediation. |
 | GH3 | Repo name collision. | L | Pre-flight check; `--repo-name` override. |
 

@@ -98,10 +98,13 @@ organization settings, Actions policy and allow-list, self-hosted runners,
 existing repositories, and the target repo's current branch protection and
 environments.
 
-The derived capability assessment is the important output: a Free personal
-account cannot have environments or branch protection on a private repository,
-which silently removes every approval gate the design depends on. That is named
-explicitly rather than skipped (risk **GH1**).
+The derived capability assessment is the important output. On a private
+repository a Free account (personal or organization) has no environments or
+branch protection, and Pro or Team has them but cannot use an environment's
+required reviewers (Enterprise only). Each of those silently removes an approval
+gate the design depends on, so each is named explicitly rather than skipped, and
+an unknown plan is reported as a blind spot, not a pass (risk **GH1**; the plan
+matrix is in the [credentials checklist](../../docs/guide/02-credentials-checklist.md)).
 
 **Entra** — signed-in context and tenant match, directory roles, app
 registrations, federated credentials (with the per-app ceiling), service

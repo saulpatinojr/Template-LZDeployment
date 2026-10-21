@@ -250,18 +250,41 @@ function Get-LzGitHubCapabilities {
         $plan = [string]$ownerProbe.Items[0].Plan
     }
 
-    # GitHub allows environments on private repos only for paid plans; they are
-    # always available on public repos and on any org plan above Free.
+    # What GitHub allows on PRIVATE repositories, which is what the factory always
+    # creates (public repositories get all of this on every plan). Checked against
+    # GitHub's documentation on 2026-10-21:
+    #   Free (personal OR organization): no environments, no branch protection.
+    #   Pro (personal) / Team (organization): environments and branch protection,
+    #       but NOT environment required reviewers or wait timers: those need Enterprise.
+    #   Enterprise: all of it.
+    # https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments
+    # https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule
+    # An organization is NOT automatically better off: a Free organization has the
+    # same limits as a Free personal account.
+    $plan = $plan.Trim().ToLowerInvariant()
     $freeTier = ($plan -eq 'free')
-    $environmentsAvailable = $isOrg -or (-not $freeTier)
-    $branchProtectionAvailable = $isOrg -or (-not $freeTier)
+    $paidBelowEnterprise = ($plan -in @('pro', 'team'))
+    $enterprise = ($plan -eq 'enterprise')
+    $planKnown = $freeTier -or $paidBelowEnterprise -or $enterprise
+
+    # "Available" means "not known to be missing". An unknown plan is reported as a
+    # blind spot below, not silently treated as a pass.
+    $environmentsAvailable = -not $freeTier
+    $branchProtectionAvailable = -not $freeTier
+    $approvalGatesAvailable = (-not $planKnown) -or $enterprise
 
     $limitations = @()
     if (-not $environmentsAvailable) {
-        $limitations += 'GitHub environments are unavailable on a Free personal account with private repositories. Every approval gate in the generated workflows would be inert, and applies would run with no human review.'
+        $limitations += 'GitHub environments are unavailable on a Free account (personal or organization) with private repositories. Every approval gate in the generated workflows would be inert, and applies would run with no human review.'
     }
     if (-not $branchProtectionAvailable) {
-        $limitations += 'Branch protection is unavailable on a Free personal account with private repositories. Anyone with write access could push directly to the branch that triggers apply.'
+        $limitations += 'Branch protection is unavailable on a Free account (personal or organization) with private repositories. Anyone with write access could push directly to the branch that triggers apply.'
+    }
+    if ($paidBelowEnterprise) {
+        $limitations += ("Environment required reviewers (the human approval before apply) are available for private repositories only on GitHub Enterprise; this account is on the {0} plan. The environments will be created but cannot hold an approval, so nothing stops an apply once its branch is updated. Turn on branch protection with required pull-request approvals so a person reviews every change that reaches apply, and tick 'Enforce for administrators' in the wizard (github.branchProtection.enforceAdmins, off by default) so an administrator cannot skip that approval. Or move the repository to an Enterprise organization." -f $plan)
+    }
+    if (-not $planKnown) {
+        $limitations += ("The account plan could not be determined (reported as '{0}'). GitHub only reveals the plan for your own account, so it is usually unknown for an organization. It is therefore unverified whether private repositories here can use environments, branch protection and required reviewers. This is a blind spot, not a pass: check the plan under Settings > Billing and plans." -f $plan)
     }
 
     $actionsProbe = if ($Probes.Contains('Organization Actions policy')) { $Probes['Organization Actions policy'] } else { $null }
@@ -279,8 +302,10 @@ function Get-LzGitHubCapabilities {
         DetectedOwnerType         = if ($isOrg) { 'Organization' } else { 'User' }
         DetectedPlan              = $plan
         DeclaredModel             = $OwnershipModel
+        PlanKnown                 = $planKnown
         EnvironmentsAvailable     = $environmentsAvailable
         BranchProtectionAvailable = $branchProtectionAvailable
+        ApprovalGatesAvailable    = $approvalGatesAvailable
         Limitations               = $limitations
     }
 }

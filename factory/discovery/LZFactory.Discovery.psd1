@@ -19,6 +19,7 @@
         'Get-LzAddressSpaceCollision'
         'Test-LzWildcardMatch'
         'Test-LzActionPermitted'
+        'Get-LzGitHubCapabilities'
         'New-LzReadinessCheck'
         'New-LzProbeResult'
         'Invoke-LzProbe'

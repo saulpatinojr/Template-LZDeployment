@@ -51,6 +51,38 @@ check and refuse).
 | Ability to create a private repository | — | Client org settings (or the operator's account) | The scaffold step creates the generated customer repository. |
 | CLI scopes: `repo`, `workflow`, `read:org` | — | Granted during `gh auth login` (browser flow) | Lets `gh` set secrets/variables, manage environments, and open the bootstrap PR. |
 
+### Which GitHub plan do you need?
+
+The factory creates a **private** repository for the customer, and GitHub limits what a
+private repository can do depending on the plan. This matters because the human approval
+before an apply depends on it.
+
+| Plan | Environments | Branch protection | Human approval before apply (an environment's *required reviewers*) |
+| --- | --- | --- | --- |
+| Free (personal account **or** organization) | No | No | No |
+| Pro (personal) or Team (organization) | Yes | Yes | **No** — Enterprise only |
+| Enterprise | Yes | Yes | Yes |
+
+**What the factory does about it.** Its readiness check reads the plan and shows a
+**Warning** that names every control your plan cannot provide, instead of skipping it
+silently. GitHub only tells the tool the plan for your *own* account, so for an
+organization the plan is often "unknown". The check then says plainly that it could not
+verify the plan (a blind spot, not a pass), and you should look at **Settings → Billing
+and plans** yourself.
+
+**If you are on Pro or Team:** the environments are created but cannot hold an approval.
+Turn on branch protection with required pull-request approvals, so that a person reviews
+every change before it can reach apply. Also tick **Enforce for administrators** in the
+wizard (it is off by default); otherwise a repository administrator can skip the approval.
+With it on, someone other than the author has to approve each change, so a one-person team
+cannot merge its own pull requests.
+
+Sources, checked 2026-10-21 (GitHub changes plan features from time to time):
+[Managing environments for deployment](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments),
+[Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments),
+[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches),
+[GitHub's plans](https://docs.github.com/en/get-started/learning-about-github/githubs-plans).
+
 ## 5. HCP Terraform (only for the HCP backend)
 
 | Item | Placeholder | Where to get it | What it is for |
@@ -88,7 +120,8 @@ Secrets and variables → Actions), not create them by hand:
 - Variables: `AZURE_REGION`, `AZURE_REGION_CODE`, `ORG_PREFIX`, `TF_VERSION`,
   `TERRAFORM_CLOUD_ENABLED`, `TF_CLOUD_ORGANIZATION`, `TF_CLOUD_WORKSPACE`.
 - Environments: `dev`, `prod`, `hub` — each with a required reviewer and
-  protected-branch deployment policy.
+  protected-branch deployment policy. (On a private repository the required reviewer
+  needs GitHub Enterprise; see [Which GitHub plan do you need?](#which-github-plan-do-you-need).)
 
 No client secret or password is ever created for these identities:
 authentication is OIDC federated credentials only. If any step asks you to

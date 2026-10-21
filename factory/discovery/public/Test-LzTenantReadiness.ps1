@@ -449,8 +449,8 @@ function Test-LzGitHubAccess {
     }
 
     return New-LzReadinessCheck -Id 'R09' -Category 'GitHub' -Name 'GitHub access' -Status 'Pass' `
-        -Detail ("Authenticated as '{0}'; {1} account supports environments and branch protection." -f `
-                 $auth.Items[0].Login, $cap.DetectedOwnerType)
+        -Detail ("Authenticated as '{0}'; the {1} account is on the {2} plan, which supports private-repository environments, required reviewers and branch protection." -f `
+                 $auth.Items[0].Login, $cap.DetectedOwnerType.ToLowerInvariant(), $cap.DetectedPlan)
 }
 
 function Test-LzTerraformBackendAccess {
