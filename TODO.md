@@ -1854,7 +1854,7 @@ every future bump, including the v1.0.0 promotion.
   **[docs/runbooks/](docs/runbooks/)** — operator procedures;
   **[docs/wiki-review/](docs/wiki-review/README.md)** — wiki review evidence
 - **[Operator guide](docs/guide/README.md)** and **[factory design record](docs/factory/README.md)** — moved here from the wiki on 2026-10-21
-- **[GitHub wiki](https://github.com/saulpatinojr/Template-LZDeployment/wiki)** — historical source material only
+- **[Wiki archive](https://github.com/saulpatinojr/Template-LZDeployment/tree/archive/wiki-2026-10-21)** — frozen snapshot of the retired wiki; historical source material only ([decision 0029](docs/decisions/0029-retire-the-wiki-and-keep-a-frozen-snapshot.md))
 
 ---
 

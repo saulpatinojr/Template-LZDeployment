@@ -25,5 +25,5 @@ know what it means.
 | [14](stage-readiness/stage-14-release-evidence-attestation.md) | Release evidence and attestation |
 
 *These pages used to live in the project wiki and were moved here on 2026-10-21.
-The older planning and architecture material from the pre-factory era stayed in
-the wiki as history.*
+The older planning and architecture material from the pre-factory era is kept as
+history in the [wiki archive](https://github.com/saulpatinojr/Template-LZDeployment/tree/archive/wiki-2026-10-21).*

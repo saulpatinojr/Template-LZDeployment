@@ -94,9 +94,10 @@ not from a deny rule.
 
 Dot-prefixed folders (`.github/`, `.claude/`, `.azure/`, …) hold tooling
 configuration only — documentation found there is a finding to migrate to
-`docs/`, the four root files, or the wiki
+`docs/` or the four root files
 ([decision 0008](docs/decisions/0008-dot-prefixed-folders-are-configuration-only.md),
-operator-directed 2026-08-07).
+operator-directed 2026-08-07; the wiki it also named was retired by
+[decision 0029](docs/decisions/0029-retire-the-wiki-and-keep-a-frozen-snapshot.md)).
 
 ## 6. How to explain things — write for a newcomer
 
