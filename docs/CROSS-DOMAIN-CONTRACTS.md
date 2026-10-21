@@ -117,6 +117,12 @@ plan → Storage Blob Data Reader, apply → Storage Blob Data Contributor. A ne
 root stack, a new remote-state read, or a change to the wizard's backend output
 must carry the flag or `terraform init` fails to authenticate.
 
+Because the plan identity is Reader-only and the azurerm state lock is a blob
+lease (which needs the blob write action), the generated pull-request plan runs
+with `-lock=false`; apply keeps its lock
+([decision 0030](decisions/0030-azurerm-pr-plans-run-without-the-state-lock.md)).
+Do not give the plan identity write access to "fix" a lock error.
+
 **Corrected 2026-08-28.** The previous span list named `scripts/New-BackendConfig.ps1`
 (deleted), `terraform/backend-bootstrap/`, all `terraform/live/*/backend.hcl`, and
 the `workloads-{prod,nonprod}` corpus templates — none of which exist. The

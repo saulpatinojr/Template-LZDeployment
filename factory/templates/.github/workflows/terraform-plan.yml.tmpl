@@ -105,7 +105,17 @@ jobs:
       - name: Terraform plan
         id: plan
         working-directory: terraform/live/${{ matrix.layer }}
+#{{IF computed.backendIsAzurerm}}
+        # No state lock, on purpose (decision 0030). This identity is Reader-only
+        # (Storage Blob Data Reader on the state container) and the azurerm
+        # backend locks with a blob lease, which needs the blob write action
+        # (Storage Blob Data Contributor). A locking plan would fail with a 403
+        # on every pull request. A plan never writes state, and apply, which
+        # re-plans under its own identity, keeps its lock.
+        run: terraform plan -input=false -no-color -lock=false -out=tfplan
+#{{ELSE}}
         run: terraform plan -input=false -no-color -out=tfplan
+#{{ENDIF}}
         continue-on-error: true
 
       # A plan that destroys resources is treated as a failure by default.
