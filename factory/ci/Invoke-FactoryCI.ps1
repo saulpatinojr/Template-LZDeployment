@@ -133,7 +133,8 @@ try {
         'Test-Validate.ps1',
         'Test-CI.ps1',
         'Test-Release.ps1',
-        'Test-DocsSite.ps1'
+        'Test-DocsSite.ps1',
+        'Test-NextSteps.ps1'
     )) {
         Invoke-LzFactoryCheck $suite pwsh @('-NoLogo', '-NoProfile', '-File', "factory/tests/$suite") -Category 'tests' | Out-Null
     }

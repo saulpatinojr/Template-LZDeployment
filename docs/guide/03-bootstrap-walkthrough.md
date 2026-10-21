@@ -84,7 +84,7 @@ terraform login                   # HCP Terraform backend only; skip for Azure S
    | `environments.json` | Environment definitions, promotion order, approval gates — consumed by the bootstrap broker. |
    | `deployment-metadata.json` | Provenance: factory and schema versions, timestamp, release gates. |
    | `CONFIGURATION.md` | Human-readable record of every decision, for change review. |
-   | `NEXT-STEPS.md` | Generated command sheet. **Known issue:** it currently names some parameters that do not exist (`-Phase discovery`, `-DryRun`, `-AutoPush`, `--rollback`) — follow THIS walkthrough and [Generate-and-Deploy](04-generate-and-deploy.md) instead; tracked in [TODO.md](../../TODO.md). |
+   | `NEXT-STEPS.md` | A command sheet with the exact commands to run next, in order. It follows the same steps as this walkthrough and [Generate and Deploy](04-generate-and-deploy.md). The factory's automated tests check its script names, options and environment variables against the real scripts, so it cannot quietly drift. |
 
 4. **Where the outputs go:** create a folder in your copy and move all eight
    files into it —
