@@ -907,6 +907,124 @@ function Set-LzBranchProtection {
     }
 }
 
+function Get-LzStateBlobKey {
+    # The blob name Terraform uses for one layer's state: the `key` line of
+    # factory/templates/terraform/live/_layer/backend.hcl.tmpl ("<layer>.tfstate").
+    # Test-Bootstrap.ps1 asserts the two never drift apart. If they did, the blob
+    # created by Initialize-LzStateBlobs would not be the one Terraform looks for.
+    param([Parameter(Mandatory)][string]$Layer)
+    return "$Layer.tfstate"
+}
+
+function Get-LzStateFileTerraformVersion {
+    # The terraform_version recorded in an initial state file. The field means "the version that
+    # last wrote this state", so the safest value is the MINIMUM version the factory supports
+    # (toolchain.terraform.required in factory-version.json): it can never claim to be newer than
+    # a supported Terraform, and Terraform rewrites it on its first real write. (Checked against
+    # Terraform 1.16.6: show, state list and plan accept this file; they do not reject a state
+    # whose terraform_version is newer, so this is prudence, not a workaround for an error.)
+    $fallback = '1.12.0'
+    $path = Join-Path $PSScriptRoot '../../factory-version.json'
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $fallback }
+    $factory = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $toolchain = Get-LzConfigValue $factory 'toolchain' $null
+    if (-not $toolchain) { return $fallback }
+    $terraform = Get-LzConfigValue $toolchain 'terraform' $null
+    if (-not $terraform) { return $fallback }
+    $required = [string](Get-LzConfigValue $terraform 'required' '')
+    if ($required -match '>=\s*(\d+\.\d+\.\d+)') { return $Matches[1] }
+    return $fallback
+}
+
+function New-LzEmptyTerraformState {
+    # The state file Terraform itself writes the first time it initialises an empty state:
+    # state format 4, a fresh lineage, serial 1, no outputs, no resources.
+    #   Shape:  internal/states/statefile/version4.go, writeStateV4 (Terraform 1.15.8)
+    #   Serial: internal/states/remote/state.go, PersistState: with no prior snapshot it
+    #           generates a lineage and increments the serial from 0 to 1.
+    # Every blob gets its own lineage, so two layers' states can never be mistaken for each other.
+    param([Parameter(Mandatory)][string]$TerraformVersion)
+    $state = [ordered]@{
+        version           = 4
+        terraform_version = $TerraformVersion
+        serial            = 1
+        lineage           = [guid]::NewGuid().ToString()
+        outputs           = [ordered]@{}
+        resources         = @()
+        check_results     = $null
+    }
+    return (($state | ConvertTo-Json -Depth 5) + "`n")
+}
+
+function Initialize-LzStateBlobs {
+    <#
+    .SYNOPSIS
+        Create any missing per-layer Terraform state blob in the azurerm state container.
+    .DESCRIPTION
+        Terraform's azurerm backend creates a layer's state blob the first time it initialises:
+        it takes a blob lease, writes an empty state and persists it, even with -lock=false
+        (Terraform 1.15.8, internal/backend/remote-state/azure/backend_state.go, StateMgr). The
+        read-only plan identity (Storage Blob Data Reader) cannot do that write, so without this
+        the FIRST pull-request plan for a never-applied layer fails at `terraform init`
+        (issue #140, decision 0031). Creating the blobs here, under the operator's own session,
+        means the plan identity only ever reads.
+
+        Create-only: a blob that already exists is never touched, and `--overwrite false` is
+        passed so the service refuses to replace one even if it appears between the check and
+        the upload. Auth is always `--auth-mode login`: no account key or SAS token is used.
+    .PARAMETER Layers
+        The active layers (New-LzBootstrapPlan).
+    #>
+    param(
+        [Parameter(Mandatory)][object]$Config,
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Layers
+    )
+    $backend = $Config.backend.azurerm
+    $container = Get-LzConfigValue $backend 'containerName' 'tfstate'
+    $permissionHint = "Creating it needs the signed-in account to hold Storage Blob Data Contributor on the state container (or storage account)."
+    $version = Get-LzStateFileTerraformVersion
+    $results = @()
+    foreach ($layer in $Layers) {
+        $key = Get-LzStateBlobKey -Layer $layer
+        try {
+            $check = Invoke-LzNativeJson az @(
+                'storage', 'blob', 'exists', '--account-name', $backend.storageAccountName,
+                '--container-name', $container, '--name', $key, '--auth-mode', 'login', '--output', 'json'
+            )
+        }
+        catch {
+            throw "Could not check whether the state blob '$key' exists in container '$container'. $permissionHint $($_.Exception.Message)"
+        }
+        if ($check -and $check.exists -eq $true) {
+            $results += [pscustomobject]@{ key = $key; status = 'exists' }
+            continue
+        }
+
+        $file = New-TemporaryFile
+        try {
+            New-LzEmptyTerraformState -TerraformVersion $version |
+                Set-Content -LiteralPath $file.FullName -Encoding utf8NoBOM -NoNewline
+            $upload = & az storage blob upload --account-name $backend.storageAccountName `
+                --container-name $container --name $key --file $file.FullName `
+                --content-type 'application/json' --overwrite false --auth-mode login `
+                --no-progress --output none 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-LzBrokerEvent INFO "Initialised the state blob $key"
+                $results += [pscustomobject]@{ key = $key; status = 'initialized' }
+            }
+            elseif (($upload -join ' ') -match 'BlobAlreadyExists|already exists') {
+                # Created by someone else between the check and the upload: fine, and untouched.
+                $results += [pscustomobject]@{ key = $key; status = 'exists' }
+            }
+            else {
+                throw "Failed to create the initial state blob '$key' in container '$container'. $permissionHint $($upload -join ' ')"
+            }
+        }
+        finally { Remove-Item -LiteralPath $file.FullName -Force -ErrorAction SilentlyContinue }
+    }
+    return $results
+}
+
 function Set-LzAzurermBackend {
     # Day-0 state posture (ADR 0019, WAF-validated): public endpoint with
     # Entra-only auth. Deliberately NOT an IP allowlist — storage network
@@ -920,7 +1038,10 @@ function Set-LzAzurermBackend {
     # deliberately absent: Terraform's blob-lease locking needs to write the
     # state blob in place. The stage-2 private-endpoint overlay is estate-side
     # (backend.azurerm.privateEndpoint.enabled, guard G27).
-    param([object]$Config)
+    param(
+        [object]$Config,
+        [string[]]$Layers = @()
+    )
     $backend = $Config.backend.azurerm
     $subscription = Get-LzConfigValue $backend 'subscriptionId' $Config.azure.subscriptions.management
     & az account set --subscription $subscription
@@ -980,6 +1101,10 @@ function Set-LzAzurermBackend {
         --account-name $backend.storageAccountName --auth-mode login --output none
     if ($LASTEXITCODE -ne 0) { throw 'Failed to reconcile backend container.' }
 
+    # Per-layer state blobs, created now so the read-only plan identity never has to write
+    # one (Terraform's azurerm backend writes an empty state on first init). Decision 0031.
+    $stateBlobs = @(Initialize-LzStateBlobs -Config $Config -Layers $Layers)
+
     # CanNotDelete on the resource group: blocks deletion of the group, the
     # account, and the container through ARM; blob writes (state pushes and
     # lease locks) are data-plane and unaffected. Re-running is idempotent.
@@ -1008,6 +1133,7 @@ function Set-LzAzurermBackend {
         infrastructureEncryption = (Get-LzConfigValue $account.encryption 'requireInfrastructureEncryption' $null)
         crossTenantReplication = (Get-LzConfigValue $account 'allowCrossTenantReplication' $false)
         deleteLock = 'lz-tfstate-cannotdelete'
+        stateBlobs = @($stateBlobs)
     }
 }
 
@@ -1353,7 +1479,16 @@ function Invoke-LzBootstrap {
         }
         identities = @()
         environments = @()
-        backend = @{ type = $config.backend.type; status = 'planned' }
+        backend = $(
+            $plannedBackend = @{ type = $config.backend.type; status = 'planned' }
+            if ($config.backend.type -eq 'azurerm') {
+                # Intent only: apply creates any of these that are missing (never overwrites).
+                $plannedBackend.stateBlobs = @($plan.layers | ForEach-Object {
+                        [ordered]@{ key = (Get-LzStateBlobKey -Layer $_); status = 'planned' }
+                    })
+            }
+            $plannedBackend
+        )
         branchProtection = @{ status = 'planned' }
         pendingUserActivities = @()
         status = 'planned'
@@ -1375,7 +1510,7 @@ function Invoke-LzBootstrap {
                 # records carry Storage Blob Data Reader/Contributor grants scoped
                 # to the state storage account (the state data-plane fix), and a
                 # role assignment on a scope that does not exist yet fails.
-                $audit.backend.details = Set-LzAzurermBackend -Config $config
+                $audit.backend.details = Set-LzAzurermBackend -Config $config -Layers @($plan.layers)
             }
             foreach ($identity in $plan.identities) {
                 Write-LzBrokerEvent INFO "Reconciling $($identity.displayName)"

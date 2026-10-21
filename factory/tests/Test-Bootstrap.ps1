@@ -582,6 +582,19 @@ ok 'plan-mode audit preflight degrades PF-D to the unverified INFO finding' (
 )
 ok 'plan mode stays non-mutating (mode recorded as plan)' ($auditRecord.mode -eq 'plan')
 
+# State blobs (decision 0031): plan mode records the INTENT in the audit, and only there.
+# bootstrap-plan.json is under a byte-parity contract with pre-change fixtures, so it must not change.
+$planRecord = Get-Content (Join-Path $planModeOut 'bootstrap-plan.json') -Raw | ConvertFrom-Json -Depth 40
+$planLayersForBlobs = @($planRecord.layers)
+ok 'plan-mode audit lists the per-layer state blobs apply would create' (
+    $planLayersForBlobs.Count -gt 0 -and
+    (@($auditRecord.backend.stateBlobs | ForEach-Object { $_.key }) -join ',') -eq ((@($planLayersForBlobs | ForEach-Object { "$_.tfstate" })) -join ',') -and
+    @($auditRecord.backend.stateBlobs | Where-Object { $_.status -ne 'planned' }).Count -eq 0
+)
+ok 'bootstrap-plan.json carries no state-blob detail (its byte-parity contract)' (
+    (Get-Content (Join-Path $planModeOut 'bootstrap-plan.json') -Raw) -notmatch 'stateBlobs|\.tfstate'
+)
+
 # Factory CI coverage check: green against the REAL corpus, and the seeded
 # failure modes fire (item-1.3 precedent: prove the check fails, do not trust
 # a check that has only ever passed).
@@ -625,6 +638,188 @@ ok 'unmapped finding tells the author where to extend the mapping' (
     ($unmappedOutput -join ' ') -match 'azurerm_kusto_cluster' -and
     ($unmappedOutput -join ' ') -match 'Resolve-LzResourceTypeNamespace'
 )
+
+
+# ---------------------------------------------------------------------------
+# State blob initialisation (decision 0031, issue #140). Terraform's azurerm backend writes an
+# empty state the first time it initialises a layer whose blob does not exist, which the read-only
+# plan identity cannot do. The broker therefore creates any missing blob under the operator's
+# session. These tests pin the file format, the never-overwrite rule, and the contract with the
+# backend.hcl template.
+# ---------------------------------------------------------------------------
+$emptyStateBlock = { param($Version) New-LzEmptyTerraformState -TerraformVersion $Version }
+$stateVersionBlock = { Get-LzStateFileTerraformVersion }
+$stateKeyBlock = { param($Layer) Get-LzStateBlobKey -Layer $Layer }
+$initBlobsBlock = { param($Config, $Layers) Initialize-LzStateBlobs -Config $Config -Layers $Layers }
+
+$stateText = & $module $emptyStateBlock '1.12.0'
+$stateObject = $stateText | ConvertFrom-Json -Depth 10
+$lineageGuid = [guid]::Empty
+ok 'the empty state is Terraform state format 4' ($stateObject.version -eq 4)
+ok 'the empty state records the version it is given' ($stateObject.terraform_version -eq '1.12.0')
+ok 'the empty state starts at serial 1, as Terraform writes a first state' ($stateObject.serial -eq 1)
+ok 'the empty state carries a real lineage' ([guid]::TryParse([string]$stateObject.lineage, [ref]$lineageGuid))
+ok 'the empty state has no outputs and no resources' (
+    @($stateObject.outputs.PSObject.Properties).Count -eq 0 -and @($stateObject.resources).Count -eq 0
+)
+ok 'the empty state has exactly the keys Terraform writes' (
+    (($stateObject.PSObject.Properties.Name | Sort-Object) -join ',') -eq 'check_results,lineage,outputs,resources,serial,terraform_version,version'
+)
+ok 'check_results is null, as Terraform writes it' ($null -eq $stateObject.check_results)
+ok 'the state text has no byte-order mark and ends with a newline' (
+    $stateText[0] -ne [char]0xFEFF -and $stateText[$stateText.Length - 1] -eq [char]10
+)
+ok 'every blob gets its own lineage' (
+    $stateObject.lineage -ne ((& $module $emptyStateBlock '1.12.0') | ConvertFrom-Json).lineage
+)
+
+$factoryVersionDoc = Get-Content "$repo/factory-version.json" -Raw | ConvertFrom-Json
+$requiredMinimum = [regex]::Match([string]$factoryVersionDoc.toolchain.terraform.required, '>=\s*(\d+\.\d+\.\d+)').Groups[1].Value
+ok 'the state file records the MINIMUM supported Terraform version' (
+    $requiredMinimum -ne '' -and (& $module $stateVersionBlock) -eq $requiredMinimum
+)
+
+# The real Terraform binary must accept the file. Read-only commands only. Skipped (not passed)
+# when terraform is not installed, and the check is shown to be able to fail.
+if (Get-Command terraform -ErrorAction SilentlyContinue) {
+    $tfProof = Join-Path $PSScriptRoot '.out/state-blob-terraform'
+    if (Test-Path $tfProof) { Remove-Item $tfProof -Recurse -Force }
+    New-Item -ItemType Directory -Path $tfProof -Force | Out-Null
+    "terraform {`n  required_version = `">= 1.12.0`"`n}`n" | Set-Content (Join-Path $tfProof 'main.tf') -Encoding utf8NoBOM
+    (& $module $emptyStateBlock $requiredMinimum) | Set-Content (Join-Path $tfProof 'terraform.tfstate') -Encoding utf8NoBOM -NoNewline
+    Push-Location $tfProof
+    try {
+        $tfShow = @(& terraform show -no-color 2>&1); $tfShowExit = $LASTEXITCODE
+        $tfList = @(& terraform state list 2>&1); $tfListExit = $LASTEXITCODE
+        '{ "version": 4, "serial": 1 ' | Set-Content 'terraform.tfstate' -Encoding utf8NoBOM
+        $tfBad = @(& terraform state list 2>&1); $tfBadExit = $LASTEXITCODE
+    }
+    finally { Pop-Location }
+    ok 'real Terraform accepts the generated state (show)' ($tfShowExit -eq 0 -and ($tfShow -join ' ') -match 'state file is empty')
+    ok 'real Terraform accepts the generated state (state list)' ($tfListExit -eq 0 -and $tfList.Count -eq 0)
+    ok 'the same check rejects a corrupt state, so it can fail' ($tfBadExit -ne 0)
+    Remove-Item $tfProof -Recurse -Force -ErrorAction SilentlyContinue
+}
+else {
+    Write-Host 'SKIP real-Terraform acceptance of the generated state (terraform is not installed here)'
+}
+
+# Cross-file contract: the broker creates exactly the blob Terraform will look for. If
+# backend.hcl.tmpl's key ever changed, the blobs created here would silently be the wrong ones.
+$backendHclTemplate = Get-Content "$repo/factory/templates/terraform/live/_layer/backend.hcl.tmpl" -Raw
+$keyMatch = [regex]::Match($backendHclTemplate, '(?m)^key\s*=\s*"\{\{FACTORY-RAW:layer\}\}(?<suffix>[^"]*)"')
+ok 'backend.hcl.tmpl names each layer''s state blob <layer>.tfstate' ($keyMatch.Success -and $keyMatch.Groups['suffix'].Value -eq '.tfstate')
+$allLayers = @('platform-management', 'global', 'platform-connectivity', 'state-hardening')
+ok 'the broker names the same blob as the template, for every layer the factory can emit' (
+    @($allLayers | Where-Object { (& $module $stateKeyBlock $_) -ne ($_ + $keyMatch.Groups['suffix'].Value) }).Count -eq 0
+)
+$brokerSource = Get-Content "$repo/factory/bootstrap/LZFactory.Bootstrap.psm1" -Raw
+ok 'apply hands the plan''s layers to the backend step (static wiring check)' (
+    $brokerSource -match 'Set-LzAzurermBackend -Config \$config -Layers @\(\$plan\.layers\)'
+)
+
+# --- Initialize-LzStateBlobs against a recording fake of the az CLI --------------------------
+function global:az {
+    $callArgs = @($args)
+    $global:LzFakeAz.Calls += , $callArgs
+    $global:LASTEXITCODE = 0
+    if ($callArgs[0] -eq 'storage' -and $callArgs[1] -eq 'blob' -and $callArgs[2] -eq 'exists') {
+        if ($global:LzFakeAz.ExistsFails) { $global:LASTEXITCODE = 1; return 'ERROR: AuthorizationPermissionMismatch' }
+        $name = $callArgs[[array]::IndexOf($callArgs, '--name') + 1]
+        return (@{ exists = ($global:LzFakeAz.Existing -contains $name) } | ConvertTo-Json -Compress)
+    }
+    if ($callArgs[0] -eq 'storage' -and $callArgs[1] -eq 'blob' -and $callArgs[2] -eq 'upload') {
+        $name = $callArgs[[array]::IndexOf($callArgs, '--name') + 1]
+        $file = $callArgs[[array]::IndexOf($callArgs, '--file') + 1]
+        $global:LzFakeAz.Uploaded[$name] = Get-Content -LiteralPath $file -Raw
+        if ($global:LzFakeAz.UploadError) { $global:LASTEXITCODE = 1; return $global:LzFakeAz.UploadError }
+        return
+    }
+    $global:LASTEXITCODE = 1
+    return "unexpected az call: $($callArgs -join ' ')"
+}
+function Invoke-FakeAzScenario {
+    param([string[]]$Layers, [string[]]$Existing = @(), $UploadError = $null, [bool]$ExistsFails = $false)
+    $global:LzFakeAz = @{ Calls = @(); Existing = @($Existing); Uploaded = @{}; UploadError = $UploadError; ExistsFails = $ExistsFails }
+    $outcome = [pscustomobject]@{ Results = @(); Error = $null; Fake = $null }
+    try { $outcome.Results = @(& $module $initBlobsBlock (Get-SampleConfig) $Layers) }
+    catch { $outcome.Error = $_.Exception.Message }
+    $outcome.Fake = $global:LzFakeAz
+    return $outcome
+}
+function Get-FakeArg($Call, [string]$Flag) { $Call[[array]::IndexOf($Call, $Flag) + 1] }
+
+try {
+    $blobConfig = Get-SampleConfig
+    $blobAccount = $blobConfig.backend.azurerm.storageAccountName
+    $blobContainer = if ($blobConfig.backend.azurerm.PSObject.Properties['containerName']) { $blobConfig.backend.azurerm.containerName } else { 'tfstate' }
+    $three = @('platform-management', 'global', 'platform-connectivity')
+
+    # A: nothing exists -> one create-only upload per layer.
+    $a = Invoke-FakeAzScenario -Layers $three
+    $aUploads = @($a.Fake.Calls | Where-Object { $_[2] -eq 'upload' })
+    ok 'no blobs exist: one upload per layer, all reported initialized' (
+        $null -eq $a.Error -and $aUploads.Count -eq 3 -and @($a.Results | Where-Object { $_.status -eq 'initialized' }).Count -eq 3
+    ) $a.Error
+    ok 'each upload names the right account, container and <layer>.tfstate blob' (
+        (@($aUploads | ForEach-Object { Get-FakeArg $_ '--name' }) -join ',') -eq (($three | ForEach-Object { "$_.tfstate" }) -join ',') -and
+        @($aUploads | Where-Object { (Get-FakeArg $_ '--account-name') -ne $blobAccount -or (Get-FakeArg $_ '--container-name') -ne $blobContainer }).Count -eq 0
+    )
+    ok 'every upload is create-only (--overwrite false), never true' (
+        @($aUploads | Where-Object { (Get-FakeArg $_ '--overwrite') -ne 'false' }).Count -eq 0
+    )
+    ok 'every az call authenticates with the operator login, and no key or SAS is ever used' (
+        @($a.Fake.Calls | Where-Object { (Get-FakeArg $_ '--auth-mode') -ne 'login' }).Count -eq 0 -and
+        @($a.Fake.Calls | Where-Object { ($_ -join ' ') -match 'account-key|sas-token|connection-string' }).Count -eq 0
+    )
+    $uploadedStates = @($a.Fake.Uploaded.Keys | ForEach-Object { $a.Fake.Uploaded[$_] | ConvertFrom-Json })
+    ok 'the uploaded content is a valid empty Terraform state with its own lineage per blob' (
+        $uploadedStates.Count -eq 3 -and
+        @($uploadedStates | Where-Object { $_.version -ne 4 -or $_.serial -ne 1 -or @($_.resources).Count -ne 0 }).Count -eq 0 -and
+        @($uploadedStates | ForEach-Object { $_.lineage } | Select-Object -Unique).Count -eq 3
+    )
+    ok 'the content type is JSON' (@($aUploads | Where-Object { (Get-FakeArg $_ '--content-type') -ne 'application/json' }).Count -eq 0)
+
+    # B: one blob already exists -> it is left completely alone.
+    $b = Invoke-FakeAzScenario -Layers $three -Existing @('global.tfstate')
+    $bUploadNames = @($b.Fake.Calls | Where-Object { $_[2] -eq 'upload' } | ForEach-Object { Get-FakeArg $_ '--name' })
+    ok 'an existing blob is never uploaded to' ($bUploadNames -notcontains 'global.tfstate' -and $bUploadNames.Count -eq 2)
+    ok 'an existing blob is reported as existing, the others as initialized' (
+        ($b.Results | Where-Object { $_.key -eq 'global.tfstate' }).status -eq 'exists' -and
+        @($b.Results | Where-Object { $_.status -eq 'initialized' }).Count -eq 2
+    )
+    ok 'nothing is ever deleted or overwritten' (
+        @($b.Fake.Calls + $a.Fake.Calls | Where-Object { ($_ -join ' ') -match 'delete|--overwrite true|--overwrite True' }).Count -eq 0
+    )
+
+    # C: every blob exists (the re-run case) -> no upload at all.
+    $c = Invoke-FakeAzScenario -Layers $three -Existing @($three | ForEach-Object { "$_.tfstate" })
+    ok 're-running changes nothing: every blob exists, so there are no uploads' (
+        @($c.Fake.Calls | Where-Object { $_[2] -eq 'upload' }).Count -eq 0 -and @($c.Results | Where-Object { $_.status -eq 'exists' }).Count -eq 3
+    )
+
+    # D: another run creates the blob between our check and our upload -> fine, untouched.
+    $d = Invoke-FakeAzScenario -Layers @('global') -UploadError 'ERROR: BlobAlreadyExists The specified blob already exists.'
+    ok 'a blob created in the meantime is treated as existing, not as a failure' ($null -eq $d.Error -and $d.Results[0].status -eq 'exists') $d.Error
+
+    # E: no permission to write -> a clear error that names the role.
+    $e = Invoke-FakeAzScenario -Layers @('global') -UploadError 'ERROR: AuthorizationPermissionMismatch This request is not authorized to perform this operation using this permission.'
+    ok 'an upload that is not authorized fails loudly and names Storage Blob Data Contributor' (
+        $e.Error -match 'Storage Blob Data Contributor' -and $e.Error -match 'global\.tfstate'
+    ) $e.Error
+    $f = Invoke-FakeAzScenario -Layers @('global') -ExistsFails $true
+    ok 'a check that is not authorized fails loudly and names Storage Blob Data Contributor' (
+        $f.Error -match 'Storage Blob Data Contributor' -and $f.Error -match 'global\.tfstate'
+    ) $f.Error
+
+    # F: no layers -> no az call at all.
+    $g = Invoke-FakeAzScenario -Layers @()
+    ok 'with no layers the step does nothing' ($null -eq $g.Error -and $g.Fake.Calls.Count -eq 0 -and $g.Results.Count -eq 0)
+}
+finally {
+    Remove-Item Function:\global:az -ErrorAction SilentlyContinue
+    Remove-Variable LzFakeAz -Scope Global -ErrorAction SilentlyContinue
+}
 
 Write-Host "$pass passed, $fail failed"
 exit $(if ($fail) { 1 } else { 0 })
