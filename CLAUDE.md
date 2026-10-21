@@ -101,7 +101,9 @@ operator-directed 2026-08-07).
 ## 6. How to explain things — write for a newcomer
 
 The people who use this repo are administrators at a client who run the
-installer once, on their own machine (§0). Often they are early in their
+installer once — normally on their own machine, with the opt-in
+`client-bootstrap` workflow as the one sanctioned exception (§0). Often they
+are early in their
 career and have never seen this repository before. Write every explanation
 for that person, not for someone who already knows the codebase.
 
@@ -109,8 +111,8 @@ for that person, not for someone who already knows the codebase.
   Lead with what happened and why it matters, then how it works.
 - **Assume a junior administrator with little context.** Do not rely on them
   knowing this repo's history, its decision numbers, or its internal names.
-  When you mention a decision record or a TODO item, say in a few words what
-  it settled, and link it.
+  When you mention a decision record, say in a few words what it settled; for
+  a TODO item, say what it records or asks for. Link either one.
 - **Avoid jargon; explain what you cannot avoid.** When a technical term is
   genuinely needed, give a one-line meaning the first time it appears. For
   example: "OIDC federation (a way for GitHub to prove who it is to Azure
@@ -122,12 +124,13 @@ for that person, not for someone who already knows the codebase.
   tool they might not have yet.
 - **Point to where to read more.** Give a link whenever one exists: this
   repo's own docs (relative links, like the ones in this file), plus the
-  official documentation for the product involved —
+  official documentation for the product involved. The places to look are
   [Microsoft Learn](https://learn.microsoft.com/),
-  [GitHub Docs](https://docs.github.com/), or the
-  [Terraform documentation](https://developer.hashicorp.com/terraform/docs).
-  Link the specific page, not the front door. If you cannot find an
-  authoritative page, say so rather than guessing at a URL.
+  [GitHub Docs](https://docs.github.com/), and the
+  [Terraform documentation](https://developer.hashicorp.com/terraform/docs),
+  but those are only starting points: every explanation links the specific
+  page that answers the question, never just the front door. If you cannot
+  find an authoritative page, say so rather than guessing at a URL.
 
 Friendly is not the same as vague: still say exactly what was checked, what
 was not, and what you could not verify.

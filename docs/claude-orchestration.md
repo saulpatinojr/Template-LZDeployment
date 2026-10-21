@@ -119,9 +119,9 @@ data into the assistant):
 - **`microsoft-learn`** — remote HTTP server for grounding Azure claims in current
   Microsoft Learn documentation instead of model recall.
 
-The four `notion-*` skills additionally need Notion's MCP server; it is not
-declared here because it requires a personal credential. You connected it yourself
-if you used those skills.
+The four `notion-*` skills additionally needed Notion's MCP server; it was not
+declared here because it required a personal credential. Users connected it
+themselves when they used those skills.
 
 ## Capability usage report
 
