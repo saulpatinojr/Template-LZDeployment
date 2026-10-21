@@ -138,6 +138,30 @@ const ns = A.nextStepsMarkdown(cfg);
 ok('next steps names the tenant', ns.includes('11111111-2222-3333-4444-555555555555'));
 ok('next steps has no undefined', !/undefined/.test(ns));
 
+// Contract #4 (retired 2026-10-21): the generated connectivity layer has no operator placeholders, so the
+// wizard must not tell anyone to fill one. The only hand-filled values belong to the optional state-hardening layer.
+{
+  const connVars = require('fs').readFileSync(require('path').resolve(__dirname, '../templates/terraform/live/platform-connectivity/variables.tf'), 'utf8');
+  ok('the connectivity layer declares neither management_ip_ranges nor log_analytics_workspace_id (the premise for the wizard text)',
+    !/variable\s+"management_ip_ranges"/.test(connVars) && !/variable\s+"log_analytics_workspace_id"/.test(connVars));
+}
+ok('config markdown does not tell the operator to fill management_ip_ranges', !/management_ip_ranges/.test(cmd));
+ok('next steps does not tell the operator to fill management_ip_ranges', !/management_ip_ranges/.test(ns));
+ok('config markdown says there is nothing to fill in by hand', /Nothing to fill in by hand/.test(cmd));
+ok('next steps does not claim that merging triggers an apply', !/Merging triggers/.test(ns) && /does \*\*not\*\* deploy anything/.test(ns));
+ok('next steps gives the apply order management, global, connectivity', ns.includes('platform-management → global → platform-connectivity'));
+ok('without the state private endpoint, no state-hardening placeholders are mentioned', !/hub_pe_subnet_id/.test(cmd) && !/hub_pe_subnet_id/.test(ns));
+{
+  const withPe = JSON.parse(JSON.stringify(cfg));
+  withPe.backend.type = 'azurerm';
+  withPe.backend.azurerm.privateEndpoint = { enabled: true };
+  const cmdPe = A.configurationMarkdown(withPe);
+  const nsPe = A.nextStepsMarkdown(withPe);
+  ok('with the state private endpoint, config markdown names both hub values', /hub_pe_subnet_id/.test(cmdPe) && /blob_private_dns_zone_id/.test(cmdPe));
+  ok('with the state private endpoint, next steps names both hub values', /hub_pe_subnet_id/.test(nsPe) && /blob_private_dns_zone_id/.test(nsPe));
+  ok('with the state private endpoint, the generated text has no undefined', !/undefined/.test(cmdPe) && !/undefined/.test(nsPe));
+}
+
 console.log('\n== 9. Personal-account degradation is a warning, not silence ==');
 c.github.ownershipModel = 'personal';
 v = A.validate();

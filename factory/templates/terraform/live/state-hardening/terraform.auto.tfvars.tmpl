@@ -19,8 +19,7 @@ primary_region_code        = {{FACTORY:azure.primaryRegionCode}}
 # DELIBERATE PLACEHOLDERS — cross-layer values owned by platform-connectivity.
 # After that layer applies, uncomment both and paste the values from its
 # outputs. The plan FAILS (variable validation) until they are set; that is
-# the designed behaviour, not a bug (same loop-back pattern as
-# log_analytics_workspace_id in the connectivity layer).
+# the designed behaviour, not a bug.
 #
 # hub_pe_subnet_id         = "<platform-connectivity output: hub PE subnet resource ID>"
 # blob_private_dns_zone_id = "<platform-connectivity output: privatelink.blob.core.windows.net zone resource ID>"

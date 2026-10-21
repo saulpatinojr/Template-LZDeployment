@@ -79,7 +79,7 @@
     },
     "state-hardening": {
       "variablesFile": "terraform/live/state-hardening/variables.tf",
-      "$comment": "Stage-2 state hardening (ADR 0019). hub_pe_subnet_id and blob_private_dns_zone_id are deliberate operator placeholders owned by the platform-connectivity layer's outputs \u2014 same loop-back pattern as the connectivity workspace ID.",
+      "$comment": "Stage-2 state hardening (ADR 0019). hub_pe_subnet_id and blob_private_dns_zone_id are deliberate operator placeholders owned by the platform-connectivity layer's outputs \u2014 the layer's plan fails until they are set.",
       "variables": {
         "state_subscription_id": "computed.stateSubscriptionId",
         "state_resource_group_name": "backend.azurerm.resourceGroupName",
