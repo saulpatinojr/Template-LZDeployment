@@ -1853,7 +1853,8 @@ every future bump, including the v1.0.0 promotion.
 - **[docs/decisions/](docs/decisions/)** — decision records;
   **[docs/runbooks/](docs/runbooks/)** — operator procedures;
   **[docs/wiki-review/](docs/wiki-review/README.md)** — wiki review evidence
-- **[GitHub wiki](https://github.com/HybridCloudWorks/Template-LZDeployment/wiki)** — operator guidebook and historical source material
+- **[Operator guide](docs/guide/README.md)** and **[factory design record](docs/factory/README.md)** — moved here from the wiki on 2026-10-21
+- **[GitHub wiki](https://github.com/saulpatinojr/Template-LZDeployment/wiki)** — historical source material only
 
 ---
 
