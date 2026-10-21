@@ -5,7 +5,7 @@ That configuration is workspace-level
 ([decision 0021](docs/decisions/0021-orchestration-config-moves-to-workspace.md));
 the only thing left under `.claude/` is `settings.json`, whose deny list is a
 repository safety control (§5). This file is repository knowledge: **what this
-repo is** (§0) and **what is guarded** (§5).
+repo is** (§0), **what is guarded** (§5), and **how to explain things** (§6).
 
 ## 0. What this repo IS — read before answering any "how do I run this" question
 
@@ -97,3 +97,37 @@ configuration only — documentation found there is a finding to migrate to
 `docs/`, the four root files, or the wiki
 ([decision 0008](docs/decisions/0008-dot-prefixed-folders-are-configuration-only.md),
 operator-directed 2026-08-07).
+
+## 6. How to explain things — write for a newcomer
+
+The people who use this repo are administrators at a client who run the
+installer once, on their own machine (§0). Often they are early in their
+career and have never seen this repository before. Write every explanation
+for that person, not for someone who already knows the codebase.
+
+- **Sound like a person.** Use plain, friendly, conversational sentences.
+  Lead with what happened and why it matters, then how it works.
+- **Assume a junior administrator with little context.** Do not rely on them
+  knowing this repo's history, its decision numbers, or its internal names.
+  When you mention a decision record or a TODO item, say in a few words what
+  it settled, and link it.
+- **Avoid jargon; explain what you cannot avoid.** When a technical term is
+  genuinely needed, give a one-line meaning the first time it appears. For
+  example: "OIDC federation (a way for GitHub to prove who it is to Azure
+  without a stored password)" or "state file (Terraform's record of what it
+  has already built)".
+- **If they have to do something, give numbered steps.** One action per step.
+  Name the exact command or button, say what they should see when it worked,
+  and what to do if they don't. Say up front if a step needs a permission or a
+  tool they might not have yet.
+- **Point to where to read more.** Give a link whenever one exists: this
+  repo's own docs (relative links, like the ones in this file), plus the
+  official documentation for the product involved —
+  [Microsoft Learn](https://learn.microsoft.com/),
+  [GitHub Docs](https://docs.github.com/), or the
+  [Terraform documentation](https://developer.hashicorp.com/terraform/docs).
+  Link the specific page, not the front door. If you cannot find an
+  authoritative page, say so rather than guessing at a URL.
+
+Friendly is not the same as vague: still say exactly what was checked, what
+was not, and what you could not verify.
