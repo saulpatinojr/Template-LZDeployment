@@ -1,9 +1,11 @@
 # Wiki source-material review — 2026-08-06
 
-> **The wiki was retired on 2026-10-21** ([decision 0029](../decisions/0029-retire-the-wiki-and-keep-a-frozen-snapshot.md)).
-> Its pages are preserved as the [`archive/wiki-2026-10-21`](https://github.com/saulpatinojr/Template-LZDeployment/tree/archive/wiki-2026-10-21) tag. This folder is the evidence
-> from the reviews done while the wiki was live; the publishing steps in it are done and
-> no longer needed.
+> **The wiki is being retired** ([decision 0029](../decisions/0029-retire-the-wiki-and-keep-a-frozen-snapshot.md));
+> its pages are preserved as the [`archive/wiki-2026-10-21`](https://github.com/saulpatinojr/Template-LZDeployment/tree/archive/wiki-2026-10-21)
+> tag. This folder is the evidence from the reviews done while the wiki was live. All three
+> patches below were applied and pushed to the wiki at the time (its history shows them as the
+> commits of 2026-08-06, 2026-08-27 and 2026-08-28), so the "not yet pushed" wording in the
+> 2026-08-06 section is out of date and the publishing steps do not need to be run again.
 
 Completes the backlog item open since the 2026-08-01 migration: the 11
 single-purpose documents moved from `docs/` to the wiki, filed under "Source
