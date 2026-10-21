@@ -1482,10 +1482,14 @@ function Invoke-LzBootstrap {
         backend = $(
             $plannedBackend = @{ type = $config.backend.type; status = 'planned' }
             if ($config.backend.type -eq 'azurerm') {
-                # Intent only: apply creates any of these that are missing (never overwrites).
-                $plannedBackend.stateBlobs = @($plan.layers | ForEach-Object {
-                        [ordered]@{ key = (Get-LzStateBlobKey -Layer $_); status = 'planned' }
-                    })
+                # Intent only, under `details` because apply REPLACES `details` with the real
+                # outcome (`$audit.backend.details = Set-LzAzurermBackend ...`). Keeping it
+                # anywhere else would leave a stale 'planned' list beside the applied result.
+                $plannedBackend.details = @{
+                    stateBlobs = @($plan.layers | ForEach-Object {
+                            [ordered]@{ key = (Get-LzStateBlobKey -Layer $_); status = 'planned' }
+                        })
+                }
             }
             $plannedBackend
         )

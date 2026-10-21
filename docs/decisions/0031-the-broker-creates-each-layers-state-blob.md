@@ -46,9 +46,11 @@ Running the pull-request plan with `-lock=false` fixes every plan *after* a laye
   deletes and never touches an existing blob. A second run changes nothing.
 - **Authentication:** always `--auth-mode login` (the operator's own sign-in). No account key and no
   SAS token, consistent with the account having shared-key access off.
-- **Evidence:** plan mode lists the blobs it *would* create in `bootstrap-audit.json`; apply records
-  the outcome (`initialized` or `exists`) under `backend.details.stateBlobs`. `bootstrap-plan.json` is
-  deliberately unchanged, because it is under a byte-parity contract with existing fixtures.
+- **Evidence:** plan mode lists the blobs it *would* create in `bootstrap-audit.json` under
+  `backend.details.stateBlobs`; apply **replaces** `backend.details` with the outcome
+  (`initialized` or `exists` per blob), so there is never a stale "planned" list beside an applied
+  result. `bootstrap-plan.json` is deliberately unchanged, because it is under a byte-parity
+  contract with existing fixtures.
 - **A new cross-file contract:** the blob name the broker creates must equal the `key` line of
   [`backend.hcl.tmpl`](../../factory/templates/terraform/live/_layer/backend.hcl.tmpl), or the blob
   created here would not be the one Terraform looks for. `Test-Bootstrap.ps1` enforces it.

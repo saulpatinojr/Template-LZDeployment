@@ -588,8 +588,16 @@ $planRecord = Get-Content (Join-Path $planModeOut 'bootstrap-plan.json') -Raw | 
 $planLayersForBlobs = @($planRecord.layers)
 ok 'plan-mode audit lists the per-layer state blobs apply would create' (
     $planLayersForBlobs.Count -gt 0 -and
-    (@($auditRecord.backend.stateBlobs | ForEach-Object { $_.key }) -join ',') -eq ((@($planLayersForBlobs | ForEach-Object { "$_.tfstate" })) -join ',') -and
-    @($auditRecord.backend.stateBlobs | Where-Object { $_.status -ne 'planned' }).Count -eq 0
+    (@($auditRecord.backend.details.stateBlobs | ForEach-Object { $_.key }) -join ',') -eq ((@($planLayersForBlobs | ForEach-Object { "$_.tfstate" })) -join ',') -and
+    @($auditRecord.backend.details.stateBlobs | Where-Object { $_.status -ne 'planned' }).Count -eq 0
+)
+# Apply REPLACES backend.details with the real outcome, so the intent must live there and nowhere
+# else: a second list at backend.stateBlobs would stay 'planned' beside the applied result.
+ok 'the plan-mode intent is only under backend.details, so apply replaces it (no stale second list)' (
+    -not $auditRecord.backend.PSObject.Properties['stateBlobs']
+)
+ok 'apply replaces backend.details with the backend step result (static wiring check)' (
+    (Get-Content "$repo/factory/bootstrap/LZFactory.Bootstrap.psm1" -Raw) -match '\$audit\.backend\.details = Set-LzAzurermBackend'
 )
 ok 'bootstrap-plan.json carries no state-blob detail (its byte-parity contract)' (
     (Get-Content (Join-Path $planModeOut 'bootstrap-plan.json') -Raw) -notmatch 'stateBlobs|\.tfstate'
