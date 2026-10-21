@@ -91,9 +91,14 @@ foreach ($section in $sections) {
 }
 
 # Every LZ_* variable the sheet mentions must exist somewhere in the real scripts and modules.
+# The skip-list is matched on the path RELATIVE to the repository, so a clone that happens to live
+# under a folder called "site" or "tests" does not make every file look excluded.
 $sourceText = (Get-ChildItem -LiteralPath $repo -Recurse -File -Include *.ps1, *.psm1, *.sh -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '[\\/](\.git|node_modules|site|tests)[\\/]' } |
+    Where-Object { [IO.Path]::GetRelativePath($repo, $_.FullName) -notmatch '(^|[\\/])(\.git|node_modules|site|tests)[\\/]' } |
     ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+if ($sourceText.Length -lt 10000) {
+    throw "The source scan for LZ_* variables found almost nothing ($($sourceText.Length) characters); the check would pass or fail for the wrong reason."
+}
 
 # --- 3. Check every variant ------------------------------------------------------------------
 foreach ($variant in $rendered.Keys | Sort-Object) {
