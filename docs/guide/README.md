@@ -12,6 +12,8 @@ credentials. You do not need anyone else to follow it.
 > [REVIEW.md](../../REVIEW.md).
 
 Read the four pages in order. Each one ends by telling you which page comes next.
+You can also read them as a website, with navigation, at
+[https://saulpatinojr.github.io/Template-LZDeployment/docs/guide/](https://saulpatinojr.github.io/Template-LZDeployment/docs/guide/index.html).
 
 | Step | Page | What you get from it |
 | --- | --- | --- |

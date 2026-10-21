@@ -1,0 +1,33 @@
+{
+  "$comment": "What the documentation site publishes. Build-DocsSite.ps1 renders every Markdown file in each section's dir (plus 'extra' files) and fails the build on any broken link, so adding a section here is safe: it cannot ship a dead link. Anything NOT listed is not published; links to it become GitHub links to the exact commit.",
+  "title": "Landing Zone Factory documentation",
+  "intro": "How to run the Landing Zone Factory for one customer, how to operate an engagement, and why the factory is built the way it is. These pages are rendered from the Markdown in the repository's docs/ folder, so they always match the code they describe.",
+  "sections": [
+    {
+      "id": "guide",
+      "title": "Operator guide",
+      "description": "Start here. A four-step walkthrough from \"I have nothing set up\" to a deployed customer landing zone, plus the operator checklist.",
+      "dir": "docs/guide",
+      "extra": [ "docs/USER-CHECKLIST.md" ]
+    },
+    {
+      "id": "runbooks",
+      "title": "Runbooks",
+      "description": "Procedures for running an engagement: opening it, its lifecycle, and disposing of it.",
+      "dir": "docs/runbooks"
+    },
+    {
+      "id": "decisions",
+      "title": "Decision records",
+      "description": "Why the factory is built the way it is, one decision per page, with the alternatives that were rejected.",
+      "dir": "docs/decisions"
+    },
+    {
+      "id": "factory",
+      "title": "Factory design",
+      "description": "The architecture, the risk register, and the dated records of how each build stage was finished.",
+      "dir": "docs/factory",
+      "recurse": true
+    }
+  ]
+}

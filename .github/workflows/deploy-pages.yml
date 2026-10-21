@@ -1,12 +1,17 @@
 name: Deploy Wizard to GitHub Pages
 
-# Hosts both static pages on GitHub Pages:
+# Hosts three things on GitHub Pages:
 #   - site/     -> published at the artifact ROOT (existing wizard URLs stay
 #                  stable: /index.html etc.)
 #   - frontend/ -> published under /frontend/ (legacy .tfvars generator,
 #                  zero-network since PR #60)
-# Both trees are enforced network-free by factory/ci/Test-SiteNoNetwork.ps1,
-# so Pages hosting adds no data-egress surface.
+#   - docs/     -> rendered to plain HTML under /docs/ by
+#                  factory/docs-site/Build-DocsSite.ps1 (decision 0028). The build
+#                  is strict: a broken link or anchor fails it, so a bad docs
+#                  change cannot replace a good published site.
+# site/ and frontend/ are enforced network-free by
+# factory/ci/Test-SiteNoNetwork.ps1; the docs output is held to the same rule by
+# factory/tests/Test-DocsSite.ps1. Pages hosting adds no data-egress surface.
 #
 # Local-preview nuance: frontend/'s "../index.html" links match THIS published
 # layout; when serving the raw repo root over localhost, "../index.html" is the
@@ -51,6 +56,12 @@ on:
     paths:
       - 'site/**'
       - 'frontend/**'
+      - 'docs/guide/**'
+      - 'docs/runbooks/**'
+      - 'docs/decisions/**'
+      - 'docs/factory/**'
+      - 'docs/USER-CHECKLIST.md'
+      - 'factory/docs-site/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -86,6 +97,15 @@ jobs:
           cp -r frontend/. _pages/frontend/
           echo "Staged layout:"
           find _pages -maxdepth 2 -type f | sort
+
+      - name: Build documentation site (under /docs/)
+        shell: pwsh
+        # Strict: exits non-zero on any broken link or anchor. -Ref pins every
+        # link to a file outside the site to the commit being deployed, so the
+        # text a reader sees always matches the files they can click through to.
+        run: |
+          ./factory/docs-site/Build-DocsSite.ps1 -OutputPath _pages/docs -Ref $env:GITHUB_SHA
+          Get-ChildItem _pages/docs -Recurse -File | Measure-Object | ForEach-Object { "Built $($_.Count) files under /docs/" }
 
       - name: Configure Pages
         id: configure

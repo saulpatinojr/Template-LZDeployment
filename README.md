@@ -93,7 +93,7 @@ Template-LZDeployment/
 │   ├── terraform-policy-checks.yml  # Renders both topology fixtures; init/validate on rendered output (AVM pin verification)
 │   ├── release-readiness.yml        # Binds e2e generation evidence to the promotion proposal
 │   ├── secrets-scan.yml             # TruffleHog + Gitleaks + tfsec + committed-state check
-│   ├── deploy-pages.yml             # GitHub Pages deploy: site/ at root, frontend/ under /frontend/ (Pages source must be "GitHub Actions")
+│   ├── deploy-pages.yml             # GitHub Pages deploy: site/ at root, frontend/ under /frontend/, docs under /docs/ (Pages source must be "GitHub Actions")
 │   └── action-pinning-policy.yml    # Enforces SHA-pinned actions
 ├── bootstrap-broker.ps1          # Stage 9 non-interactive broker
 ├── bootstrap-broker.sh           # Cross-platform launcher
@@ -104,6 +104,7 @@ Template-LZDeployment/
 ├── scripts/New-LzSubscriptions.ps1  # Subscription vending: creates planned subscriptions, patches IDs back (ADR 0020)
 ├── factory/validate/             # Post-render validation gate module
 ├── factory/ci/                   # Stage 12 CI runner and source policies
+├── factory/docs-site/            # Builds the documentation site published under /docs/ on GitHub Pages (decision 0028)
 ├── factory/release/              # Stage 14 attestation and promotion planning
 ├── release-readiness.ps1         # Stage 14 PowerShell entry point
 ├── release-readiness.sh          # Stage 14 strict Bash launcher
@@ -284,6 +285,7 @@ See [TODO.md](TODO.md) (all action items, phased) and [REVIEW.md](REVIEW.md) (hu
 
 ## Documentation
 
+- **[Documentation site](https://saulpatinojr.github.io/Template-LZDeployment/docs/)** — the operator guide, runbooks, decision records and factory design, rendered from `docs/` and published on GitHub Pages (built by `factory/docs-site/`, [decision 0028](docs/decisions/0028-publish-docs-on-pages-with-a-repo-owned-strict-renderer.md))
 - **[Operator guide](docs/guide/README.md)** — the four-step walkthrough for running one customer engagement, start to finish
 - **[Factory design record](docs/factory/README.md)** — the architecture, the risk register, and the Stage 7–14 completion records
 - **[GitHub wiki](https://github.com/saulpatinojr/Template-LZDeployment/wiki)** — historical material only: the pre-factory plan, architecture and standards, and the webapp/static-generator docs
