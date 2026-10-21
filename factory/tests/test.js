@@ -148,6 +148,10 @@ ok('next steps has no undefined', !/undefined/.test(ns));
 ok('config markdown does not tell the operator to fill management_ip_ranges', !/management_ip_ranges/.test(cmd));
 ok('next steps does not tell the operator to fill management_ip_ranges', !/management_ip_ranges/.test(ns));
 ok('config markdown says there is nothing to fill in by hand', /Nothing to fill in by hand/.test(cmd));
+ok('config markdown has each top-level section heading exactly once', (() => {
+  const heads = (cmd.match(/^## .+$/mg) || []);
+  return heads.length === new Set(heads).size;
+})(), (cmd.match(/^## .+$/mg) || []).join(' | '));
 ok('next steps does not claim that merging triggers an apply', !/Merging triggers/.test(ns) && /does \*\*not\*\* deploy anything/.test(ns));
 ok('next steps gives the apply order management, global, connectivity', ns.includes('platform-management → global → platform-connectivity'));
 ok('without the state private endpoint, no state-hardening placeholders are mentioned', !/hub_pe_subnet_id/.test(cmd) && !/hub_pe_subnet_id/.test(ns));
@@ -160,6 +164,9 @@ ok('without the state private endpoint, no state-hardening placeholders are ment
   ok('with the state private endpoint, config markdown names both hub values', /hub_pe_subnet_id/.test(cmdPe) && /blob_private_dns_zone_id/.test(cmdPe));
   ok('with the state private endpoint, next steps names both hub values', /hub_pe_subnet_id/.test(nsPe) && /blob_private_dns_zone_id/.test(nsPe));
   ok('with the state private endpoint, the generated text has no undefined', !/undefined/.test(cmdPe) && !/undefined/.test(nsPe));
+  const dupFree = (md) => { const h = (md.match(/^#{2,3} .+$/mg) || []); return h.length === new Set(h).size; };
+  ok('no duplicate headings in CONFIGURATION.md or NEXT-STEPS.md, with the state private endpoint on or off',
+    dupFree(cmd) && dupFree(ns) && dupFree(cmdPe) && dupFree(nsPe));
 }
 
 console.log('\n== 9. Personal-account degradation is a warning, not silence ==');

@@ -2777,7 +2777,6 @@ function configurationMarkdown(cfg) {
           '`state-hardening` layer, which you did not turn on, is the only one that ever does.)'),
     '',
     '## Governance',
-    '## Governance',
     '',
     `Policy enforcement: **${cfg.governance.policyBaseline.enforcementMode}**.`,
     '',
