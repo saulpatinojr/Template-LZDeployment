@@ -1260,14 +1260,6 @@ function Test-LzFirstApplyPreflight {
         These traps otherwise surface as raw Terraform/Azure errors long after
         the broker has finished:
 
-        PF-A: management_ip_ranges in the connectivity tfvars is still the
-              commented wizard placeholder. It must be operator-supplied before
-              the first platform-connectivity plan; left alone the layer falls
-              back to the wide-open '*' default.
-        PF-B: log_analytics_workspace_id loop-back. The value is owned by the
-              platform-management layer and can only be filled in AFTER that
-              layer applies; an uncommented value still carrying the '<...>'
-              placeholder text will fail the plan.
         PF-C: sandbox RBAC. A sandbox layer with no dedicated
               azure.subscriptions.sandbox falls back to the management
               subscription, so no role assignment lands on the real sandbox
@@ -1281,15 +1273,17 @@ function Test-LzFirstApplyPreflight {
               (Get-LzRequiredResourceProviders); the broker apply step is the
               remediation, this finding is the early warning.
 
-        The commented placeholders themselves are deliberate (contract #4 in
-        docs/CROSS-DOMAIN-CONTRACTS.md): the wizard never collects operator
-        network ranges, and the workspace ID crosses layer state. This function
-        detects and explains; it never edits and never blocks the broker.
+        PF-A and PF-B (the connectivity layer's management_ip_ranges and
+        log_analytics_workspace_id placeholders) were retired 2026-10-21. The
+        generated connectivity layer declares neither variable, so both warned
+        about a placeholder that does not exist, on every run (contract #4 in
+        docs/CROSS-DOMAIN-CONTRACTS.md). The IDs are not reused. Test-Bootstrap.ps1
+        fails if that layer starts declaring either variable again.
+
+        This function detects and explains; it never edits and never blocks the
+        broker.
     .PARAMETER Config
         Parsed lz-config.json object.
-    .PARAMETER ConfigPath
-        Path the config was loaded from; the wizard-exported
-        connectivity.auto.tfvars is looked for beside it.
     .PARAMETER Layers
         Active layers from the renderer's derivation (New-LzBootstrapPlan).
     .PARAMETER ProviderStateReader
@@ -1299,74 +1293,13 @@ function Test-LzFirstApplyPreflight {
         When the reader returns $null (az absent, unauthenticated, or the call
         fails) PF-D degrades to an INFO "could not verify" finding — never an
         error, because the preflight also runs in unauthenticated plan mode.
-    .NOTES
-        The connectivity tfvars is searched for, in order: the
-        LZ_CONNECTIVITY_TFVARS environment variable, connectivity.auto.tfvars
-        beside the config file, then the rendered staging tree
-        (LZ_RENDERED_PATH, default ./rendered-output).
     #>
     param(
         [Parameter(Mandatory)][object]$Config,
-        [Parameter(Mandatory)][string]$ConfigPath,
         [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Layers,
         [scriptblock]$ProviderStateReader
     )
     $findings = @()
-
-    if ($Layers -contains 'platform-connectivity') {
-        $configDirectory = Split-Path -Parent (Resolve-Path $ConfigPath)
-        $renderedRoot = if ($env:LZ_RENDERED_PATH) { $env:LZ_RENDERED_PATH } else { './rendered-output' }
-        $candidates = @(
-            $env:LZ_CONNECTIVITY_TFVARS
-            (Join-Path $configDirectory 'connectivity.auto.tfvars')
-            (Join-Path $renderedRoot 'terraform/live/platform-connectivity/connectivity.auto.tfvars')
-        ) | Where-Object { $_ }
-        $tfvarsPath = $candidates | Where-Object { Test-Path $_ -PathType Leaf } | Select-Object -First 1
-
-        if (-not $tfvarsPath) {
-            $findings += [pscustomobject]@{
-                id = 'PF-A0'
-                severity = 'WARN'
-                message = "Connectivity tfvars not found; management_ip_ranges cannot be pre-flighted. Searched: $($candidates -join '; ')."
-                remediation = 'Place the wizard-exported connectivity.auto.tfvars beside lz-config.json (or set LZ_CONNECTIVITY_TFVARS), then re-run the broker.'
-            }
-        }
-        else {
-            $tfvars = Get-Content $tfvarsPath -Raw
-            if ($tfvars -notmatch '(?m)^\s*management_ip_ranges\s*=') {
-                $findings += [pscustomobject]@{
-                    id = 'PF-A1'
-                    severity = 'WARN'
-                    message = "management_ip_ranges is still the commented placeholder in $tfvarsPath. The first platform-connectivity plan will otherwise use the wide-open '*' default."
-                    remediation = "Uncomment and set operator CIDR ranges, e.g. management_ip_ranges = [`"203.0.113.0/24`"]. '*' and '0.0.0.0/0' are rejected. The commented placeholder is deliberate (contract #4); fill it, do not restructure it."
-                }
-            }
-            elseif ($tfvars -match '(?m)^\s*management_ip_ranges\s*=\s*(\[\s*)?"(\*|0\.0\.0\.0/0)"') {
-                $findings += [pscustomobject]@{
-                    id = 'PF-A2'
-                    severity = 'WARN'
-                    message = "management_ip_ranges in $tfvarsPath is set to a wildcard, exposing firewall management interfaces to every source address."
-                    remediation = 'Replace the wildcard with the operator CIDR ranges before the first connectivity apply.'
-                }
-            }
-            if ($tfvars -match '(?m)^\s*log_analytics_workspace_id\s*=\s*"?<') {
-                $findings += [pscustomobject]@{
-                    id = 'PF-B1'
-                    severity = 'WARN'
-                    message = "log_analytics_workspace_id in $tfvarsPath is uncommented but still carries the '<...>' placeholder text; the connectivity plan will fail on it."
-                    remediation = 'Re-comment the line until platform-management has applied, then paste that layer''s log_analytics_workspace_id output.'
-                }
-            }
-            elseif ($tfvars -notmatch '(?m)^\s*log_analytics_workspace_id\s*=') {
-                $findings += [pscustomobject]@{
-                    id = 'PF-B2'
-                    severity = 'INFO'
-                    message = 'log_analytics_workspace_id is not set in the connectivity tfvars; hub firewall diagnostics and threat-intel alerts will not be created.'
-                    remediation = 'Expected before first apply: the value only exists AFTER the platform-management layer applies. Loop back then and set it from that layer''s output.'
-                }
-            }
-        }
-    }
 
     if ($Layers -contains 'sandbox') {
         $sandboxSubscription = Get-LzConfigValue $Config.azure.subscriptions 'sandbox'
@@ -1449,9 +1382,9 @@ function Invoke-LzBootstrap {
     $plan | ConvertTo-Json -Depth 30 | Set-Content $planPath -Encoding utf8
 
     # First-apply pre-flight: loud and early, but advisory. These are operator
-    # traps in OTHER stages (connectivity tfvars, sandbox RBAC); failing the
+    # traps in OTHER stages (sandbox RBAC, resource providers); failing the
     # broker on them would block the reconciliation that is this stage's job.
-    $preflight = @(Test-LzFirstApplyPreflight -Config $config -ConfigPath $ConfigPath -Layers $plan.layers)
+    $preflight = @(Test-LzFirstApplyPreflight -Config $config -Layers $plan.layers)
     if ($preflight.Count -eq 0) {
         Write-LzBrokerEvent OK 'First-apply pre-flight: no findings.'
     }

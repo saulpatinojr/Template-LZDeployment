@@ -140,24 +140,41 @@ shared container and per-layer keys. Hardening posture: [ADR 0019](decisions/001
 
 ## 4. Deliberately unmapped variables
 
-Two variables are **intentionally not collected by the wizard**. The omission is
+Some values are **intentionally not collected by the wizard**. The omission is
 the contract — do not "fix" it by adding schema keys or wizard fields.
 
-- **`management_ip_ranges`** — operator-supplied, required, wildcard-rejecting.
-  The rendered connectivity tfvars carries a **commented placeholder** the
-  operator uncomments; `*` and `0.0.0.0/0` are rejected. The broker detects and
-  explains an unfilled placeholder but never edits it and never blocks — see
-  `Test-LzFirstApplyPreflight` in `factory/bootstrap/LZFactory.Bootstrap.psm1`,
-  whose remediation text cites this contract by number.
 - **`log_analytics_workspace_id`** — owned by the platform-management layer and
   deliberately absent from the schema and the wizard; the workspace never flows
   through `lz-config.json`. It is exported by
-  `factory/templates/terraform/live/platform-management/outputs.tf.tmpl` and
-  consumed downstream.
+  `factory/templates/terraform/live/platform-management/outputs.tf.tmpl`, and the
+  `global` layer reads it straight from platform-management's saved state
+  (`data.terraform_remote_state.management` in
+  `factory/templates/terraform/live/global/main.tf.tmpl`). Nobody pastes it anywhere.
+- **`hub_pe_subnet_id`** and **`blob_private_dns_zone_id`** — used only by the
+  optional `state-hardening` layer (rendered when
+  `backend.azurerm.privateEndpoint.enabled`). Both are resource IDs that exist only
+  after `platform-connectivity` has applied, so the rendered
+  `terraform/live/state-hardening/terraform.auto.tfvars` carries them as **commented
+  placeholders** the operator fills in. That layer's plan fails by design until they
+  are set. The broker does not pre-flight them.
 
-**Spans**: `factory/bootstrap/LZFactory.Bootstrap.psm1` (detection and
-remediation text), `site/app.js` (emits the commented operator placeholders),
-`factory/templates/terraform/live/platform-management/outputs.tf.tmpl`.
+**Retired 2026-10-21: `management_ip_ranges`.** This contract used to name it as an
+operator-supplied, wildcard-rejecting value with a commented placeholder in the
+connectivity tfvars, and the broker warned when it was unfilled (preflight findings
+PF-A and PF-B, which also covered a pasted connectivity `log_analytics_workspace_id`).
+The generated connectivity layer declares neither variable any more (the bespoke
+hub-network module that took them was retired: see
+[COVERAGE.md](refactor/COVERAGE.md)), so those warnings fired on every run for
+something that cannot happen, and the wizard's `CONFIGURATION.md` and `NEXT-STEPS.md`
+told operators to edit a placeholder that is not there. All of that was removed
+together. `Test-Bootstrap.ps1` and `test.js` fail if the connectivity layer starts
+declaring either variable again, which is the signal to bring the preflight back.
+
+**Spans**: `factory/templates/terraform/live/platform-management/outputs.tf.tmpl`,
+`factory/templates/terraform/live/global/main.tf.tmpl`,
+`factory/templates/terraform/live/state-hardening/terraform.auto.tfvars.tmpl`,
+`factory/renderer/variable-map.json`, `site/app.js` (the wizard text),
+`factory/tests/Test-Bootstrap.ps1`.
 
 **Corrected 2026-08-28.** The previous text described the workspace ID as
 reached through a `count`-gated remote-state read named
@@ -167,9 +184,7 @@ management layer's first apply, with a `management_workspace` re-export feeding
 gone** — `wire_management_workspace` appears nowhere in the repository, and
 `nsg-flow-logs` was deleted with the bespoke module tree
 ([ADR 0013](decisions/0013-generator-only-avm-architecture.md)). The closing
-note about `security.nsgFlowLogs.*` mappings is void for the same reason. What
-survives is the contract's actual point: **neither variable is wizard-collected,
-and neither should become so.**
+note about `security.nsgFlowLogs.*` mappings is void for the same reason.
 
 ## 5. `spoke-network` provider alias — ⊘ VOID
 

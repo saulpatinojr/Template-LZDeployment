@@ -511,13 +511,13 @@ ok 'targets: a sandbox environment adds its dedicated subscription' (
     $targetsSandbox.Count -eq 4 -and $targetsSandbox -contains $sandboxSub
 ) ($targetsSandbox -join ', ')
 
-# PF-D through the injected read seam. Layers=@() isolates PF-D from PF-A..C.
+# PF-D through the injected read seam. Layers=@() isolates PF-D from PF-C.
 $sampleConfigPath = "$PSScriptRoot/fixtures/sample-config.json"
 $allRegisteredReader = {
     param([string]$SubscriptionId)
     @($expectedRequired | ForEach-Object { [pscustomobject]@{ namespace = $_; state = 'Registered' } })
 }
-$pfdClean = @(Test-LzFirstApplyPreflight -Config (Get-SampleConfig) -ConfigPath $sampleConfigPath -Layers @() -ProviderStateReader $allRegisteredReader)
+$pfdClean = @(Test-LzFirstApplyPreflight -Config (Get-SampleConfig) -Layers @() -ProviderStateReader $allRegisteredReader)
 ok 'PF-D: fully registered subscriptions yield no findings' (
     @($pfdClean | Where-Object { $_.id -like 'PF-D*' }).Count -eq 0
 ) ($pfdClean | ConvertTo-Json -Compress)
@@ -529,7 +529,7 @@ $partialReader = {
         [pscustomobject]@{ namespace = $_; state = $state }
     })
 }
-$pfdPartial = @(Test-LzFirstApplyPreflight -Config (Get-SampleConfig) -ConfigPath $sampleConfigPath -Layers @() -ProviderStateReader $partialReader)
+$pfdPartial = @(Test-LzFirstApplyPreflight -Config (Get-SampleConfig) -Layers @() -ProviderStateReader $partialReader)
 $pfdWarnings = @($pfdPartial | Where-Object id -eq 'PF-D1')
 ok 'PF-D: one WARN per subscription with unregistered namespaces' (
     $pfdWarnings.Count -eq 1 -and $pfdWarnings[0].severity -eq 'WARN'
@@ -546,7 +546,7 @@ ok 'PF-D: remediation carries the exact az provider register command' (
 )
 
 $unreadableReader = { param([string]$SubscriptionId) $null }
-$pfdUnverified = @(Test-LzFirstApplyPreflight -Config (Get-SampleConfig) -ConfigPath $sampleConfigPath -Layers @() -ProviderStateReader $unreadableReader)
+$pfdUnverified = @(Test-LzFirstApplyPreflight -Config (Get-SampleConfig) -Layers @() -ProviderStateReader $unreadableReader)
 $pfdSkips = @($pfdUnverified | Where-Object id -eq 'PF-D0')
 ok 'PF-D: unreadable provider state degrades to a single INFO finding, never an error' (
     $pfdSkips.Count -eq 1 -and $pfdSkips[0].severity -eq 'INFO' -and
@@ -581,6 +581,22 @@ ok 'plan-mode audit preflight degrades PF-D to the unverified INFO finding' (
     @($auditRecord.preflight | Where-Object { $_.id -eq 'PF-D0' }).Count -eq 1
 )
 ok 'plan mode stays non-mutating (mode recorded as plan)' ($auditRecord.mode -eq 'plan')
+
+# PF-A / PF-B were retired 2026-10-21. The generated connectivity layer declares neither
+# management_ip_ranges nor log_analytics_workspace_id, so they warned about a placeholder that
+# does not exist, on every run. Pin the premise (the layer's variables) and the behaviour (no finding).
+$connectivityVariables = Get-Content "$repo/factory/templates/terraform/live/platform-connectivity/variables.tf" -Raw
+ok 'the connectivity layer declares neither management_ip_ranges nor log_analytics_workspace_id (the premise for retiring PF-A/PF-B)' (
+    $connectivityVariables -notmatch 'variable\s+"management_ip_ranges"' -and
+    $connectivityVariables -notmatch 'variable\s+"log_analytics_workspace_id"'
+)
+ok 'plan-mode audit preflight carries no PF-A or PF-B finding' (
+    @($auditRecord.preflight | Where-Object { $_.id -match '^PF-[AB]' }).Count -eq 0
+) (@($auditRecord.preflight | ForEach-Object { $_.id }) -join ',')
+$pfConnectivity = @(Test-LzFirstApplyPreflight -Config (Get-SampleConfig) -Layers @('platform-management', 'global', 'platform-connectivity') -ProviderStateReader $allRegisteredReader)
+ok 'a connectivity engagement with registered providers has no preflight findings' (
+    $pfConnectivity.Count -eq 0
+) ($pfConnectivity | ConvertTo-Json -Compress)
 
 # State blobs (decision 0031): plan mode records the INTENT in the audit, and only there.
 # bootstrap-plan.json is under a byte-parity contract with pre-change fixtures, so it must not change.

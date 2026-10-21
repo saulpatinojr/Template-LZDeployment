@@ -2649,6 +2649,13 @@ function unmetDependencies(cfg) {
 
 function md(...ls) { return ls.join('\n'); }
 
+// True when the answers turn on the optional state-hardening layer. Its two hub resource IDs are the
+// only values an operator fills in by hand in a generated repository (contract #4).
+function stateHardeningEnabled(cfg) {
+  const b = cfg.backend || {};
+  return b.type === 'azurerm' && !!(b.azurerm && b.azurerm.privateEndpoint && b.azurerm.privateEndpoint.enabled);
+}
+
 function configurationMarkdown(cfg) {
   const t = cfg.naming.defaultTags;
   const unmet = unmetDependencies(cfg);
@@ -2746,24 +2753,28 @@ function configurationMarkdown(cfg) {
     '',
     `Hybrid: ExpressRoute ${cfg.connectivity.expressRoute.enabled ? 'yes' : 'no'}, VPN ${cfg.connectivity.vpn.enabled ? 'yes' : 'no'}, Bastion ${cfg.connectivity.bastion.enabled ? 'yes' : 'no'}.`,
     '',
-    '### Operator loop-back — the two placeholders in `connectivity.auto.tfvars`',
-    '',
-    'The exported `connectivity.auto.tfvars` deliberately carries two **commented** placeholders the',
-    'wizard never collects (see `factory/renderer/variable-map.json`). They are closed by hand, in',
-    'this order:',
-    '',
-    '1. **Fill `management_ip_ranges`** in `connectivity.auto.tfvars` before the first',
-    '   `platform-connectivity` plan. It is required — the plan fails until it is set — and',
-    '   wildcards (`*`, `0.0.0.0/0`) are rejected.',
-    '2. **Plan and apply `platform-management`**, which creates the Log Analytics workspace.',
-    '3. **Paste the `log_analytics_workspace_id` output** from that apply into',
-    '   `connectivity.auto.tfvars`, uncommenting the placeholder line.',
-    '4. **Re-plan `platform-connectivity`.** This second plan is what wires hub firewall diagnostics',
-    '   and threat-intel alerts to the workspace — left unset, they are silently not created and',
-    '   nothing else will warn about it.',
-    '',
-    'Do not add these values to `lz-config.json` or expect a wizard re-export to fill them; the',
-    'omission is a factory contract, not a gap.',
+    stateHardeningEnabled(cfg)
+      ? md(
+          '### Two values to fill in later — the `state-hardening` layer',
+          '',
+          'You turned on the state private-endpoint option, which adds a `state-hardening` layer. It needs two',
+          'resource IDs that only exist once the hub network does, so the wizard cannot collect them. They are',
+          'commented placeholders in `terraform/live/state-hardening/terraform.auto.tfvars` of the generated',
+          'repository. Fill them in this order:',
+          '',
+          '1. Apply `platform-connectivity` first.',
+          '2. In a pull request, uncomment `hub_pe_subnet_id` and `blob_private_dns_zone_id` and paste in the',
+          '   resource IDs of the hub private-endpoint subnet and of the `privatelink.blob.core.windows.net`',
+          '   private DNS zone.',
+          '3. Apply `state-hardening`. Until both are set its plan fails on purpose.',
+          '',
+          'Do not add these values to `lz-config.json` or expect a wizard re-export to fill them; the',
+          'omission is a factory contract, not a gap.')
+      : md(
+          '### Nothing to fill in by hand',
+          '',
+          'None of the layers in this configuration has a placeholder for you to fill in. (The optional',
+          '`state-hardening` layer, which you did not turn on, is the only one that ever does.)'),
     '',
     '## Governance',
     '',
@@ -2962,20 +2973,28 @@ function nextStepsMarkdown(cfg) {
     step('Deploy'),
     '',
     'Open a pull request in the generated repository. `terraform-plan` runs against it with the read-only',
-    'plan identity. Merging triggers `terraform-apply`, which runs per layer in dependency order:',
+    'plan identity. Merging does **not** deploy anything: applying is a deliberate manual step. For each',
+    'layer, open **Actions → Terraform Apply → Run workflow** in the generated repository and choose the',
+    'layer and its environment. Each run waits at that environment approval gate. Apply in this order,',
+    'and wait for each run to finish before starting the next:',
     '',
     '```',
-    'global → platform-connectivity → platform-management → workloads-prod → sandbox',
+    'platform-management → global → platform-connectivity',
     '```',
     '',
-    '### The two deliberate placeholders in `connectivity.auto.tfvars`',
+    'The `global` layer reads the saved state of `platform-management`, which is why management goes first.',
+    'The generated repository `README.md` lists every layer that was rendered for you. Any other layer (for',
+    'example `workloads-prod` or `sandbox`) is applied the same way, through its own environment.',
     '',
-    '1. Before the **first** `platform-connectivity` plan: uncomment `management_ip_ranges` and set your',
-    '   operator CIDR ranges. The plan fails until it is set; `*` and `0.0.0.0/0` are rejected.',
-    '2. After `platform-management` applies: copy its `log_analytics_workspace_id` output into',
-    '   `connectivity.auto.tfvars`, then **re-plan** `platform-connectivity` to wire firewall diagnostics',
-    '   and threat-intel alerts. `CONFIGURATION.md` walks this loop-back step by step.',
-    '',
+    ...(stateHardeningEnabled(cfg)
+      ? [md(
+          'You turned on the state private-endpoint option, so there is one more layer, `state-hardening`. It needs',
+          'two resource IDs from the hub. After `platform-connectivity` has applied, open a pull request that',
+          'uncomments `hub_pe_subnet_id` and `blob_private_dns_zone_id` in',
+          '`terraform/live/state-hardening/terraform.auto.tfvars` and pastes in the resource IDs of the hub',
+          'private-endpoint subnet and of the `privatelink.blob.core.windows.net` private DNS zone. Then apply',
+          '`state-hardening` through the `management` environment. `CONFIGURATION.md` has the same steps.'), '']
+      : []),
     cfg.deploymentStrategy.mode === 'brownfield'
       ? md('## Brownfield note (exclude-and-create, ADR 0018)', '',
           'This landing zone is built on **new** subscriptions only. The excluded subscriptions',
