@@ -24,17 +24,17 @@ $CANONICAL_PINS = [ordered]@{
     'actions/checkout'                  = @{ sha = '3d3c42e5aac5ba805825da76410c181273ba90b1'; version = 'v7.0.1' }
     'actions/configure-pages'           = @{ sha = '45bfe0192ca1faeb007ade9deae92b16b8254a0d'; version = 'v6.0.0' }
     'actions/dependency-review-action'  = @{ sha = 'a1d282b36b6f3519aa1f3fc636f609c47dddb294'; version = 'v5.0.0' }
-    'actions/deploy-pages'              = @{ sha = 'cd2ce8fcbc39b97be8ca5fce6e763baed58fa128'; version = 'v5.0.0' }
-    'actions/download-artifact'         = @{ sha = '3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c'; version = 'v8.0.1' }
+    'actions/deploy-pages'              = @{ sha = '368f82528645a54fb793d4d04e342629a3f51346'; version = 'v5.0.1' }
+    'actions/download-artifact'         = @{ sha = '9000827ccba6bdab643e8b6fd33ac0654aef8333'; version = 'v8.0.2' }
     'actions/github-script'             = @{ sha = '3a2844b7e9c422d3c10d287c895573f7108da1b3'; version = 'v9.0.0' }
-    'actions/upload-artifact'           = @{ sha = '043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'; version = 'v7.0.1' }
+    'actions/upload-artifact'           = @{ sha = 'cf430e030ddbb5b0abf93d22962f4752f3646cd9'; version = 'v7.0.2' }
     'actions/upload-pages-artifact'     = @{ sha = 'fc324d3547104276b827a68afc52ff2a11cc49c9'; version = 'v5.0.0' }
-    'azure/login'                       = @{ sha = 'f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca'; version = 'v3.0.1' }
+    'azure/login'                       = @{ sha = 'a641126d1b8aa4d1fa005f4f92df94a3a4c4c906'; version = 'v3.1.0' }
     'hashicorp/setup-terraform'         = @{ sha = 'dfe3c3f87815947d99a8997f908cb6525fc44e9e'; version = 'v4.0.1' }
     'terraform-linters/setup-tflint'    = @{ sha = '6e1e0642c0289bd619021bf6b34e3c08ed1e005a'; version = 'v6.3.0' }
-    # v3.97.1 tag SHA verified against the upstream repo (git ls-remote) after
-    # the Dependabot bump in #124, which superseded the #100 bump to v3.97.0.
-    'trufflesecurity/trufflehog'        = @{ sha = '20652fbbdefffcdaa493a5bf57ab2ac6b1db715b'; version = 'v3.97.1' }
+    # v3.99.2 tag SHA verified against the upstream repo (git ls-remote) after
+    # the Dependabot bump in #131, which superseded the #124 bump to v3.97.1.
+    'trufflesecurity/trufflehog'        = @{ sha = 'e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9'; version = 'v3.99.2' }
 }
 # ─────────────────────────────────────────────────────────────────────────────
 
