@@ -9,7 +9,7 @@ know what it means.
 | Page | What it is |
 | --- | --- |
 | [Factory design](factory-design.md) | The architecture and the risk register. Risk IDs cited in code comments are defined here. Written before the generator-only refactor, so parts of it describe things that were later deleted; the banner at the top says which. |
-| [Stage readiness records](stage-readiness/) | One short record per build stage (7 to 14), each written when that stage was finished. They are history, not instructions. |
+| [Stage readiness records](#the-stage-records) | One short record per build stage (7 to 14), each written when that stage was finished. They are history, not instructions. |
 
 ## The stage records
 
