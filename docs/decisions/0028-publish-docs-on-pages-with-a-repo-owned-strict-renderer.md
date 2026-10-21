@@ -113,8 +113,9 @@ package or download is introduced.
 ## Verification
 
 - `factory/tests/Test-DocsSite.ps1`: 44 checks pass locally — the rules above,
-  determinism, and a build of the real docs (51 pages) with every link and anchor
-  on every page resolved.
+  determinism, and a build of the real docs (52 pages) with every link and anchor
+  on every page resolved. The suite also passes in Factory CI on Linux, the same
+  platform that builds the deployed site.
 - The generated site was opened in a real browser in light and dark themes and at
   a 390 px phone width.
 - Not established by these checks: the live deployment. That is verified after
