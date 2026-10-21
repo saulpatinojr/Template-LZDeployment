@@ -555,6 +555,7 @@ try {
     ok 'the CLI gets a workspace token' ($hcpPlan -match 'cli_config_credentials_token:\s*\$\{\{\s*secrets\.TF_API_TOKEN\s*\}\}')
     # The reason state-only is a const and not a preference.
     ok 'the plan destroy gate survives' ($hcpPlan -match 'terraform plan -input=false -no-color -out=tfplan' -and $hcpPlan -match 'terraform show -json tfplan')
+ok 'the HCP plan keeps its workspace lock (the no-lock rule is azurerm-only)' ($hcpPlan -notmatch '-lock=false')
     ok 'the apply destroy gate survives' ($hcpApply -match '-out=tfplan' -and $hcpApply -match 'terraform show -json tfplan')
     # Azure auth is untouched: TFC never holds a credential to the tenant.
     ok 'azure login is still OIDC' ($hcpPlan -match 'azure/login' -and $hcpPlan -match 'id-token:\s*write')
@@ -592,6 +593,14 @@ ok 'azurerm still emits an empty backend block' ((Get-Content (Join-Path $out 't
 ok 'azurerm still emits backend.hcl'            (Test-Path (Join-Path $out 'terraform/live/global/backend.hcl'))
 ok 'azurerm init still supplies it'             ((Get-Content (Join-Path $out '.github/workflows/terraform-plan.yml') -Raw) -match 'backend-config=backend\.hcl')
 ok 'azurerm carries no workspace token'         ((Get-Content (Join-Path $out '.github/workflows/terraform-plan.yml') -Raw) -notmatch 'cli_config_credentials_token')
+# Decision 0030: the plan identity is Reader-only, and the azurerm lock is a blob lease that
+# needs the blob write action, so the pull-request plan runs without the lock while apply
+# (which holds the Contributor role) keeps it.
+$azPlan = Get-Content (Join-Path $out '.github/workflows/terraform-plan.yml') -Raw
+$azApply = Get-Content (Join-Path $out '.github/workflows/terraform-apply.yml') -Raw
+ok 'azurerm PR plan runs without the state lock (reader-only identity)' ($azPlan -match 'terraform plan -input=false -no-color -lock=false -out=tfplan')
+ok 'azurerm PR plan still saves the plan the destroy gate reads'         ($azPlan -match '-out=tfplan' -and $azPlan -match 'terraform show -json tfplan')
+ok 'azurerm apply keeps the state lock'                                 ($azApply -notmatch '-lock=false')
 $azGlobal = Get-Content (Join-Path $out 'terraform/live/global/main.tf') -Raw
 ok 'azurerm still reads management state from the blob' ($azGlobal -match '(?s)data "terraform_remote_state" "management".*?backend\s*=\s*"azurerm"')
 ok 'azurerm still emits its state coordinates' ((Get-Content (Join-Path $out 'terraform/live/global/terraform.auto.tfvars') -Raw) -match 'state_storage_account_name')

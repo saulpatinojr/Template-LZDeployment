@@ -146,7 +146,7 @@ Severity: **H**igh / **M**edium / **L**ow. Every High risk has a named control.
 | SR2 | Plan-time credential has write access. | H | Two identities per environment: `*-plan` (Reader + Storage Blob Data Reader) and `*-apply` (Contributor/Owner, environment-gated). |
 | SR3 | Static client secrets fall back in when OIDC federation fails. | H | Broker has **no** secret-creation code path. Failure is fatal, not degraded. |
 | SR4 | Unpinned third-party actions in generated workflows. | H | All actions SHA-pinned; `action-pinning-policy.yml` is emitted into every generated repo and required. |
-| SR5 | Terraform state poisoning (state contains secrets / is writable by plan identity). | H | State isolated per layer per env; plan identity read-only on state; TFC state versioning + `state-recovery` runbook. |
+| SR5 | Terraform state poisoning (state contains secrets / is writable by plan identity). | H | State isolated per layer per env; plan identity read-only on state; TFC state versioning + `state-recovery` runbook. On azurerm the pull-request plan therefore runs with `-lock=false`, because the state lock is a blob lease that needs write access ([decision 0030](../decisions/0030-azurerm-pr-plans-run-without-the-state-lock.md)). |
 | SR6 | Compromised runner exfiltrates tokens. | M | `permissions: {}` default at workflow root, least-privilege per job; no `pull_request_target`. |
 | SR7 | Wizard writes secrets into `lz-config.json` which is then committed. | H | Schema forbids secret-typed fields; `.gitignore` covers `generated-output/`; secret-scan workflow in factory and generated repo. |
 | SR8 | Repo compromise → attacker edits workflow to self-approve. | M | Branch protection + required reviewers on `prod` environment + CODEOWNERS on `.github/**`. |
