@@ -84,16 +84,12 @@ Template-LZDeployment/
 │   ├── .github/workflows/        # Emitted, self-contained, SHA-pinned workflows (ADR 0016)
 │   ├── docs/                     # Emitted governance/finops/operating-model docs
 │   └── renovate.json             # Pin ownership transfers to the generated repo (ADR 0013)
-├── frontend/                     # DEPRECATED legacy .tfvars generator (banner in page; site/ is the product)
-│   ├── index.html
-│   ├── app.js
-│   └── styles.css
 ├── .github/workflows/
 │   ├── factory-ci.yml               # Canonical generator CI (contracts, policies, analyzers)
 │   ├── terraform-policy-checks.yml  # Renders both topology fixtures; init/validate on rendered output (AVM pin verification)
 │   ├── release-readiness.yml        # Binds e2e generation evidence to the promotion proposal
 │   ├── secrets-scan.yml             # TruffleHog + Gitleaks + tfsec + committed-state check
-│   ├── deploy-pages.yml             # GitHub Pages deploy: site/ at root, frontend/ under /frontend/, docs under /docs/ (Pages source must be "GitHub Actions")
+│   ├── deploy-pages.yml             # GitHub Pages deploy: site/ at root, docs under /docs/ (Pages source must be "GitHub Actions")
 │   └── action-pinning-policy.yml    # Enforces SHA-pinned actions
 ├── bootstrap-broker.ps1          # Stage 9 non-interactive broker
 ├── bootstrap-broker.sh           # Cross-platform launcher
@@ -208,18 +204,6 @@ dependency order: `platform-management` → `global` → `platform-connectivity`
 policy default). `terraform init` in the generated repository downloads the
 pinned AVM modules from the Terraform Registry; from delivery onward the
 emitted `renovate.json` owns those pins.
-
----
-
-## Optional Static Configuration Generator (deprecated)
-
-`frontend/` is a standalone static page that fed the **retired legacy
-in-repo pipeline** (the `terraform/live/*` tree deleted by
-[ADR 0013](docs/decisions/0013-generator-only-avm-architecture.md)). It is
-retained with an explicit deprecation banner pointing at `site/`, the only
-supported path; its role is now historical/documentation-only. Usage and
-background: [frontend/README.md](frontend/README.md) and
-[Webapp-Plan in the wiki archive](https://github.com/saulpatinojr/Template-LZDeployment/blob/archive/wiki-2026-10-21/Webapp-Plan.md).
 
 ---
 

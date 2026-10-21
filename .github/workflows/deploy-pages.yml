@@ -1,21 +1,16 @@
 name: Deploy Wizard to GitHub Pages
 
-# Hosts three things on GitHub Pages:
+# Hosts two things on GitHub Pages:
 #   - site/     -> published at the artifact ROOT (existing wizard URLs stay
 #                  stable: /index.html etc.)
-#   - frontend/ -> published under /frontend/ (legacy .tfvars generator,
-#                  zero-network since PR #60)
 #   - docs/     -> rendered to plain HTML under /docs/ by
 #                  factory/docs-site/Build-DocsSite.ps1 (decision 0028). The build
 #                  is strict: a broken link or anchor fails it, so a bad docs
 #                  change cannot replace a good published site.
-# site/ and frontend/ are enforced network-free by
-# factory/ci/Test-SiteNoNetwork.ps1; the docs output is held to the same rule by
-# factory/tests/Test-DocsSite.ps1. Pages hosting adds no data-egress surface.
-#
-# Local-preview nuance: frontend/'s "../index.html" links match THIS published
-# layout; when serving the raw repo root over localhost, "../index.html" is the
-# repo root (not site/) — use the published layout or serve a staged _pages/.
+# site/ is enforced network-free by factory/ci/Test-SiteNoNetwork.ps1; the docs
+# output is held to the same rule by factory/tests/Test-DocsSite.ps1. Pages hosting
+# adds no data-egress surface. (The legacy frontend/ generator that used to be
+# published under /frontend/ was retired by decision 0032.)
 #
 # PAGES ENABLEMENT — read this before debugging a red run here.
 #
@@ -55,7 +50,6 @@ on:
     branches: [main]
     paths:
       - 'site/**'
-      - 'frontend/**'
       - 'docs/guide/**'
       - 'docs/runbooks/**'
       - 'docs/decisions/**'
@@ -90,11 +84,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - name: Stage pages layout (site at root, frontend under /frontend/)
+      - name: Stage pages layout (site at root)
         run: |
-          mkdir -p _pages/frontend
+          mkdir -p _pages
           cp -r site/. _pages/
-          cp -r frontend/. _pages/frontend/
           echo "Staged layout:"
           find _pages -maxdepth 2 -type f | sort
 

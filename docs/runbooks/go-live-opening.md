@@ -120,7 +120,9 @@ Either route; `deploy-pages.yml` is ready and SHA-pinned.
   ```
 
 Verify: the next `deploy-pages.yml` run publishes; the site serves `site/`
-at root and `frontend/` under `/frontend/` (item 4.3's criterion).
+at root (item 4.3's criterion). The legacy `frontend/` page that criterion also
+named was retired by
+[decision 0032](../decisions/0032-retire-the-legacy-frontend-generator.md).
 
 ## 3. Item 4.1 — Confirm the tenant, then bootstrap the identity estate
 
