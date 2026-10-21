@@ -13,7 +13,7 @@ the real ones into your engagement notes (never into the repository).
 
 | Item | Placeholder | Where to get it | What it is for |
 | --- | --- | --- | --- |
-| GitHub account | `your-github-login` | github.com (client provides or creates one for the engagement) | `gh auth login`; owning/administering the fork; creating the generated customer repository. |
+| GitHub account | `your-github-login` | github.com (client provides or creates one for the engagement) | `gh auth login`; owning/administering the client's copy of the factory; creating the generated customer repository. |
 | Azure work account | `operator@client.example.com` | Client's IT admin creates it in their tenant | `az login`; creating identities and granting roles in the client tenant. |
 | HCP Terraform account (optional) | `you@client.example.com` on app.terraform.io | app.terraform.io sign-up, join the client's organization | Only if the engagement uses the HCP Terraform backend (the recorded default; Azure Storage is the fully supported alternative). |
 
@@ -47,7 +47,7 @@ check and refuse).
 
 | Item | Placeholder | Where to get it | What it is for |
 | --- | --- | --- | --- |
-| Repository admin on the fork | — | Fork settings → Collaborators/Teams | Setting secrets, variables, environments, and branch protection. |
+| Repository admin on the client's copy | — | Repository settings → Collaborators/Teams | Setting secrets, variables, environments, and branch protection. |
 | Ability to create a private repository | — | Client org settings (or the operator's account) | The scaffold step creates the generated customer repository. |
 | CLI scopes: `repo`, `workflow`, `read:org` | — | Granted during `gh auth login` (browser flow; the bootstrap requests them) | Lets `gh` set secrets/variables, manage environments, and open the bootstrap PR. |
 
@@ -79,7 +79,7 @@ this is by design (a recorded contract), so do not look for wizard fields:
 
 ## 8. Secrets and variables that get created FOR you
 
-The bootstrap sets these — listed so you can verify them (fork → Settings →
+The bootstrap sets these — listed so you can verify them (client copy → Settings →
 Secrets and variables → Actions), not create them by hand:
 
 - Secrets: `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_CLIENT_ID`
@@ -97,7 +97,10 @@ create a service-principal password, stop — that is not this design.
 ## 9. Never store (from the repository's USER-CHECKLIST)
 
 - Azure or GitHub **user** tokens.
-- `TFE_TOKEN` / TFC API tokens (anywhere other than the GitHub secret).
+- `TFE_TOKEN` / TFC API tokens, other than as the GitHub secret. The one exception
+  is a temporary environment variable in your own terminal while a local broker run
+  is in progress; clear it afterwards. Never put one in a file, the repository, or
+  configuration.
 - Client secrets.
 - Storage account keys (state access is Azure AD only; key access is disabled).
 

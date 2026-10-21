@@ -52,7 +52,13 @@ workspace prefix, environments, and branch-protection settings match the
 engagement.
 
 ```powershell
-pwsh ./bootstrap-broker.ps1 -Apply     # or LZ_BOOTSTRAP_APPLY=true ./bootstrap-broker.sh
+pwsh ./bootstrap-broker.ps1 -Apply
+```
+
+On Linux or macOS, with Bash, set the variable and run the shell version instead:
+
+```bash
+LZ_BOOTSTRAP_APPLY=true ./bootstrap-broker.sh
 ```
 
 Preserve `bootstrap-plan.json` and `bootstrap-audit.json`, read back what was

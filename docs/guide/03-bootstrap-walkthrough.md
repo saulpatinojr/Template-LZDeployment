@@ -161,7 +161,7 @@ generated customer repository gets an equivalent check as its
    | `environments.json` | Environment definitions, promotion order, approval gates — consumed by the bootstrap broker. |
    | `deployment-metadata.json` | Provenance: factory and schema versions, timestamp, release gates. |
    | `CONFIGURATION.md` | Human-readable record of every decision, for change review. |
-   | `NEXT-STEPS.md` | Generated command sheet. **Known issue:** it currently names some parameters that do not exist (`-Phase discovery`, `-DryRun`, `-AutoPush`, `--rollback`) — follow THIS wiki page and [Generate-and-Deploy](04-generate-and-deploy.md) instead; tracked in `PROD-TODO.md`. |
+   | `NEXT-STEPS.md` | Generated command sheet. **Known issue:** it currently names some parameters that do not exist (`-Phase discovery`, `-DryRun`, `-AutoPush`, `--rollback`) — follow THIS walkthrough and [Generate-and-Deploy](04-generate-and-deploy.md) instead; tracked in `PROD-TODO.md`. |
 
 4. **Where the outputs go:** create a folder in your clone and move all eight
    files into it —

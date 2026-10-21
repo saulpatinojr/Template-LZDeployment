@@ -25,7 +25,7 @@ plus two representative rendered trees formatted and validated.
 
 | Stage | Deliverable | Evidence reviewed | Entry state for Stage 7 |
 |---|---|---|---|
-| 1 | Factory architecture and risk register | `docs/factory/FACTORY-DESIGN.md` | Accepted; status text corrected from “build pending” |
+| 1 | Factory architecture and risk register | `docs/factory/factory-design.md` | Accepted; status text corrected from “build pending” |
 | 2 | Schema and version contract | `factory/schema/lz-config.schema.json`, `factory-version.json` | Schema 2.0.0; factory 0.2.0 |
 | 3 | Offline config plane | `site/`, wizard tests | Emits the factory config contract; zero-network invariant remains |
 | 4 | Read-only discovery | discovery module, README, 60-test suite | Five-state probe model and BR2 behavior present |

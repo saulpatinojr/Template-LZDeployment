@@ -108,5 +108,5 @@ The last verified local executable baseline remains Stage 8:
 ## Next boundary
 
 Stage 13 subsequently implemented the dogfood render/plan/protected-apply path;
-see `STAGE-13-READINESS.md`. Live execution, Factory CI enablement, and
+see [Stage 13 readiness](stage-13-hcw-dogfood-instance.md). Live execution, Factory CI enablement, and
 branch-protection read-back remain operator activities in `USER-CHECKLIST.md`.

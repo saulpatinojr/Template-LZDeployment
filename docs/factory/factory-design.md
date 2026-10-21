@@ -103,6 +103,8 @@ storage-account bootstrap). `azurerm` remains fully supported for air-gapped/sov
 
 ## 4. Open Decisions
 
+> **Historical.** These were the open decisions when this record was written. They have since been decided in practice, and some were overtaken — for example D1's proposed move of `terraform/` under `factory/templates/` was superseded by the generator-only refactor ([ADR 0013](../decisions/0013-generator-only-avm-architecture.md)). The right-hand column is what was *proposed*, not necessarily what shipped.
+
 | # | Decision | Recommendation |
 |---|---|---|
 | D1 | Does the factory live in this repo, or is this repo retired as a customer instance? | **Build the factory here**; move existing `terraform/` + `.github/workflows/` under `factory/templates/`, and keep a `generated-output/hcw/` as the dogfood instance. |

@@ -89,4 +89,4 @@ each layer through the protected apply environment, review evidence, and
 perform independent read-back. These activities are tracked in
 `USER-CHECKLIST.md` and do not block Stage 13 code publication. Stage 14
 subsequently adds release evidence attestation and promotion planning; see
-`STAGE-14-READINESS.md`.
+[Stage 14 readiness](stage-14-release-evidence-attestation.md).
