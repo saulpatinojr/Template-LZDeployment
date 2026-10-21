@@ -3,12 +3,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-# Both static pages are published to GitHub Pages (deploy-pages.yml): the
-# wizard (site/) and the legacy .tfvars generator (frontend/, zero-network
-# since PR #60). The same no-network policy governs both.
+# The wizard (site/) is published to GitHub Pages (deploy-pages.yml) and must make
+# no network requests. (The legacy frontend/ page was retired by decision 0032.)
 $scanRoots = @(
-    (Join-Path $repo 'site'),
-    (Join-Path $repo 'frontend')
+    (Join-Path $repo 'site')
 )
 $findings = @()
 $patterns = [ordered]@{
