@@ -117,7 +117,8 @@ Secrets and variables → Actions), not create them by hand:
 - Variables: `AZURE_REGION`, `AZURE_REGION_CODE`, `ORG_PREFIX`, `TF_VERSION`,
   `TERRAFORM_CLOUD_ENABLED`, `TF_CLOUD_ORGANIZATION`, `TF_CLOUD_WORKSPACE`.
 - Environments: `dev`, `prod`, `hub` — each with a required reviewer and
-  protected-branch deployment policy.
+  protected-branch deployment policy. (On a private repository the required reviewer
+  needs GitHub Enterprise; see [Which GitHub plan do you need?](#which-github-plan-do-you-need).)
 
 No client secret or password is ever created for these identities:
 authentication is OIDC federated credentials only. If any step asks you to
