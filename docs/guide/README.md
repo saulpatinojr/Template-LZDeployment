@@ -19,8 +19,8 @@ You can also read them as a website, with navigation, at
 | --- | --- | --- |
 | 1 | [Getting started](01-getting-started.md) | What the factory is, the overall path (copy, set up, run the wizard, generate, deploy, clean up), and the accounts and tools you need before you begin. |
 | 2 | [Credentials checklist](02-credentials-checklist.md) | Every account, permission and secret you will need — what it is for and where to get it. |
-| 3 | [Bootstrap walkthrough](03-bootstrap-walkthrough.md) | Installing and signing in to the command-line tools, running the bootstrap (it creates the identities and GitHub settings), and filling in the configuration wizard. |
-| 4 | [Generate and deploy](04-generate-and-deploy.md) | Generating the customer's repository, pushing it to GitHub, doing the first deployment, and tidying up afterwards. |
+| 3 | [Prepare and run the wizard](03-bootstrap-walkthrough.md) | Getting a copy of the factory onto your machine, signing in to the command-line tools, and filling in the configuration wizard. Nothing is changed in Azure or GitHub yet. |
+| 4 | [Generate and deploy](04-generate-and-deploy.md) | Checking the tenant, creating the identities and state storage (the broker), generating the customer's repository and publishing it to GitHub, doing the first deployment, and tidying up afterwards. |
 
 Two companion documents live elsewhere because the tests and tools read them
 from disk: the [operator checklist](../USER-CHECKLIST.md) (the authoritative

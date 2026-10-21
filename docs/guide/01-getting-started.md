@@ -4,7 +4,7 @@
 
 This page is step 1 of 4 in the **How to Get Started** guidebook.
 Next: [Credentials-Checklist](02-credentials-checklist.md) →
-[Bootstrap-Walkthrough](03-bootstrap-walkthrough.md) →
+[Prepare and run the wizard](03-bootstrap-walkthrough.md) →
 [Generate-and-Deploy](04-generate-and-deploy.md).
 
 > The earlier "Getting Started" content for the self-deploying 4-phase plan now

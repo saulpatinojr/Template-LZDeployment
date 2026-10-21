@@ -3,7 +3,7 @@
 > *Moved here from the project wiki on 2026-10-21. This copy is the maintained one.*
 
 Step 2 of 4 in **How to Get Started**.
-← [Getting-Started](01-getting-started.md) | Next: [Bootstrap-Walkthrough](03-bootstrap-walkthrough.md)
+← [Getting-Started](01-getting-started.md) | Next: [Prepare and run the wizard](03-bootstrap-walkthrough.md)
 
 Every account, credential, identifier, secret, and permission an operator
 needs to complete one engagement. All values shown are placeholders — collect
@@ -13,11 +13,11 @@ the real ones into your engagement notes (never into the repository).
 
 | Item | Placeholder | Where to get it | What it is for |
 | --- | --- | --- | --- |
-| GitHub account | `your-github-login` | github.com (client provides or creates one for the engagement) | `gh auth login`; owning/administering the client's copy of the factory; creating the generated customer repository. |
+| GitHub account | `your-github-login` | github.com (client provides or creates one for the engagement) | `gh auth login`; creating and administering the generated customer repository. |
 | Azure work account | `operator@client.example.com` | Client's IT admin creates it in their tenant | `az login`; creating identities and granting roles in the client tenant. |
 | HCP Terraform account (optional) | `you@client.example.com` on app.terraform.io | app.terraform.io sign-up, join the client's organization | Only if the engagement uses the HCP Terraform backend (the recorded default; Azure Storage is the fully supported alternative). |
 
-## 2. Azure identifiers (the wizard and the bootstrap ask for these)
+## 2. Azure identifiers (the wizard and the broker use these)
 
 | Item | Placeholder | Where to get it | What it is for |
 | --- | --- | --- | --- |
@@ -26,7 +26,7 @@ the real ones into your engagement notes (never into the repository).
 | Connectivity subscription ID | `aaaaaaaa-0000-0000-0000-000000000002` | Portal → Subscriptions | Hosts the hub network and firewall. |
 | Workload (prod) subscription ID | `aaaaaaaa-0000-0000-0000-000000000003` | Portal → Subscriptions | Hosts production workload spokes. |
 | Identity / workload non-prod / sandbox subscription IDs (optional) | `aaaaaaaa-0000-0000-0000-00000000000N` | Portal → Subscriptions | Optional layers; the wizard marks which are required. |
-| Sandbox subscription ID (again, for the bootstrap) | same as above | — | Passed as `-SandboxSubscriptionId` so the deploying identity can write the sandbox-cleanup role assignment. **Skipping this makes the platform-management apply fail with `AuthorizationFailed`.** |
+| Sandbox subscription ID (only if the engagement has a sandbox) | same as above | — | Set it in the wizard. The broker then gives the deploying identity RBAC Administrator on that subscription only, so it can write the sandbox-cleanup role assignment. **If it is not set when the broker runs, the platform-management apply fails with `AuthorizationFailed`.** |
 | Management-group root ID | `client-root` | Portal → Management groups (or the wizard's naming step defines it) | The scope where management groups are created and roles assigned. |
 
 ## 3. Azure permissions the operator's account needs
@@ -37,7 +37,7 @@ the real ones into your engagement notes (never into the repository).
 | Owner **or** User Access Administrator | management-group root (`client-root`) | Portal → Management groups → Access control (IAM) | Create management groups and assign the least-privilege roles the pipelines run with. |
 | Subscription access | each subscription above | IAM on each subscription | The bootstrap assigns roles scoped to these subscriptions. |
 
-The identities the bootstrap **creates** get less than you have: Contributor +
+The identities the broker **creates** get less than you have: Contributor +
 Storage Blob Data Contributor for apply, Reader + Storage Blob Data Reader for
 the PR plan identity, RBAC Administrator only where sandbox cleanup requires
 it. No service principal ever holds Owner (the scripts and pipelines both
@@ -47,9 +47,9 @@ check and refuse).
 
 | Item | Placeholder | Where to get it | What it is for |
 | --- | --- | --- | --- |
-| Repository admin on the client's copy | — | Repository settings → Collaborators/Teams | Setting secrets, variables, environments, and branch protection. |
+| Repository admin on the customer repository | — | The factory creates it; for an existing repository, Repository settings → Collaborators/Teams | The broker sets secrets, variables, environments, and branch protection there. |
 | Ability to create a private repository | — | Client org settings (or the operator's account) | The scaffold step creates the generated customer repository. |
-| CLI scopes: `repo`, `workflow`, `read:org` | — | Granted during `gh auth login` (browser flow; the bootstrap requests them) | Lets `gh` set secrets/variables, manage environments, and open the bootstrap PR. |
+| CLI scopes: `repo`, `workflow`, `read:org` | — | Granted during `gh auth login` (browser flow) | Lets `gh` set secrets/variables, manage environments, and open the bootstrap PR. |
 
 ## 5. HCP Terraform (only for the HCP backend)
 
@@ -79,7 +79,7 @@ this is by design (a recorded contract), so do not look for wizard fields:
 
 ## 8. Secrets and variables that get created FOR you
 
-The bootstrap sets these — listed so you can verify them (client copy → Settings →
+The broker sets these — listed so you can verify them (customer repository → Settings →
 Secrets and variables → Actions), not create them by hand:
 
 - Secrets: `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_CLIENT_ID`
@@ -104,4 +104,4 @@ create a service-principal password, stop — that is not this design.
 - Client secrets.
 - Storage account keys (state access is Azure AD only; key access is disabled).
 
-**Next: [Bootstrap-Walkthrough](03-bootstrap-walkthrough.md)**
+**Next: [Prepare and run the wizard](03-bootstrap-walkthrough.md)**
