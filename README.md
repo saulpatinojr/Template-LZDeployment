@@ -219,7 +219,7 @@ in-repo pipeline** (the `terraform/live/*` tree deleted by
 retained with an explicit deprecation banner pointing at `site/`, the only
 supported path; its role is now historical/documentation-only. Usage and
 background: [frontend/README.md](frontend/README.md) and
-[Webapp-Plan on the wiki](https://github.com/HybridCloudWorks/Template-LZDeployment/wiki/Webapp-Plan).
+[Webapp-Plan in the wiki archive](https://github.com/saulpatinojr/Template-LZDeployment/blob/archive/wiki-2026-10-21/Webapp-Plan.md).
 
 ---
 
@@ -288,7 +288,7 @@ See [TODO.md](TODO.md) (all action items, phased) and [REVIEW.md](REVIEW.md) (hu
 - **[Documentation site](https://saulpatinojr.github.io/Template-LZDeployment/docs/)** — the operator guide, runbooks, decision records and factory design, rendered from `docs/` and published on GitHub Pages (built by `factory/docs-site/`, [decision 0028](docs/decisions/0028-publish-docs-on-pages-with-a-repo-owned-strict-renderer.md))
 - **[Operator guide](docs/guide/README.md)** — the four-step walkthrough for running one customer engagement, start to finish
 - **[Factory design record](docs/factory/README.md)** — the architecture, the risk register, and the Stage 7–14 completion records
-- **[GitHub wiki](https://github.com/saulpatinojr/Template-LZDeployment/wiki)** — historical material only: the pre-factory plan, architecture and standards, and the webapp/static-generator docs
+- **[Wiki archive](https://github.com/saulpatinojr/Template-LZDeployment/tree/archive/wiki-2026-10-21)** — a frozen, read-only snapshot of the retired GitHub wiki, kept for history only: the pre-factory plan, architecture and standards, and the webapp/static-generator docs ([decision 0029](docs/decisions/0029-retire-the-wiki-and-keep-a-frozen-snapshot.md))
 - **[TODO.md](TODO.md)** — all action items repo-wide, phased for handoff
 - **[REVIEW.md](REVIEW.md)** — blockers only a human-in-the-loop can resolve
 - **[CHANGELOG.md](CHANGELOG.md)** — changelog of shipped features, with verification notes and the archived `HANDOFF.md` decisions

@@ -7,10 +7,11 @@ Next: [Credentials-Checklist](02-credentials-checklist.md) →
 [Bootstrap-Walkthrough](03-bootstrap-walkthrough.md) →
 [Generate-and-Deploy](04-generate-and-deploy.md).
 
-> The earlier "Getting Started" content for the self-deploying 4-phase plan now
-> lives in the wiki's *Source Material* section — see [Phase-Roadmap](https://github.com/saulpatinojr/Template-LZDeployment/wiki/Phase-Roadmap) and
-> [Phase-1-Prerequisites](https://github.com/saulpatinojr/Template-LZDeployment/wiki/Phase-1-Prerequisites). This page describes the
-> current factory motion.
+> The earlier "Getting Started" content for the self-deploying 4-phase plan is
+> kept only as history, in the frozen wiki archive — see
+> [Phase-Roadmap](https://github.com/saulpatinojr/Template-LZDeployment/blob/archive/wiki-2026-10-21/Phase-Roadmap.md) and
+> [Phase-1-Prerequisites](https://github.com/saulpatinojr/Template-LZDeployment/blob/archive/wiki-2026-10-21/Phase-1-Prerequisites.md).
+> This page describes the current factory motion.
 
 ## What this repository is
 

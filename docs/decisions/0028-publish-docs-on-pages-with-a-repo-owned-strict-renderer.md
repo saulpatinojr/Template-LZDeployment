@@ -83,8 +83,9 @@ package or download is introduced.
 - Links from published pages to files outside the site point at the deployed
   commit, so the text a reader sees always matches the files they can click
   through to. They are snapshots, not "latest".
-- Two guide links still point at wiki pages that stayed behind. They work while
-  the wiki is enabled; they need relocating before the wiki is switched off.
+- The two guide links that used to point at wiki pages now point at the frozen
+  wiki archive ([decision 0029](0029-retire-the-wiki-and-keep-a-frozen-snapshot.md)),
+  so switching the wiki off breaks nothing.
 - A new published directory must also be added to the `paths:` filter in
   `deploy-pages.yml`, or edits to it will not trigger a redeploy. (The test checks
   the existing four.)
