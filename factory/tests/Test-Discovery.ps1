@@ -108,6 +108,57 @@ ok 'no false positive'           (@($col2).Count -eq 0)
 $col3 = Get-LzAddressSpaceCollision -PlannedCidrs @('172.20.0.0/16') -ExistingVNets $vnets
 ok 'multi-prefix VNet matched'   (@($col3).Count -eq 1)
 
+Write-Host "`n== 8b. GitHub capabilities by plan (private repositories) ==" -ForegroundColor Cyan
+# GitHub's rules for PRIVATE repositories, which the factory always creates (checked against
+# GitHub's documentation 2026-10-21): Free has no environments or branch protection, personal OR
+# organization; Pro/Team have both but NOT environment required reviewers (Enterprise only).
+function New-OwnerProbes([bool]$IsOrg, [string]$Plan) {
+    [ordered]@{ 'Owner account' = New-LzProbeResult -Name 'Owner account' -Status Ok -Items @([pscustomobject]@{ DetectedAsOrg = $IsOrg; Plan = $Plan }) }
+}
+function Get-Cap([bool]$IsOrg, [string]$Plan) {
+    Get-LzGitHubCapabilities -Probes (New-OwnerProbes $IsOrg $Plan) -OwnershipModel $(if ($IsOrg) { 'organization' } else { 'personal' })
+}
+function Test-Mentions($Cap, [string]$Pattern) { @($Cap.Limitations | Where-Object { $_ -match $Pattern }).Count -ge 1 }
+
+foreach ($case in @(@{ Org = $true; Label = 'Free ORGANIZATION' }, @{ Org = $false; Label = 'Free personal account' })) {
+    $cap = Get-Cap $case.Org 'free'
+    ok "$($case.Label): no environments (an organization is not automatically better off)" (-not $cap.EnvironmentsAvailable)
+    ok "$($case.Label): no branch protection" (-not $cap.BranchProtectionAvailable)
+    ok "$($case.Label): no approval gates" (-not $cap.ApprovalGatesAvailable)
+    ok "$($case.Label): both missing controls are named in the limitations" ((Test-Mentions $cap 'environments are unavailable') -and (Test-Mentions $cap 'Branch protection is unavailable'))
+    ok "$($case.Label): the plan is known" $cap.PlanKnown
+}
+
+foreach ($case in @(@{ Org = $false; Plan = 'pro' }, @{ Org = $true; Plan = 'team' }, @{ Org = $true; Plan = 'Team' })) {
+    $cap = Get-Cap $case.Org $case.Plan
+    $label = "$($case.Plan) plan"
+    ok "$label`: environments and branch protection ARE available (not reported as unsupported)" ($cap.EnvironmentsAvailable -and $cap.BranchProtectionAvailable)
+    ok "$label`: approval gates are NOT available on private repositories" (-not $cap.ApprovalGatesAvailable)
+    ok "$label`: exactly one limitation, and it names Enterprise and required reviewers" (@($cap.Limitations).Count -eq 1 -and (Test-Mentions $cap 'required reviewers') -and (Test-Mentions $cap 'Enterprise'))
+    ok "$label`: the limitation tells the operator what to do instead" (Test-Mentions $cap 'branch protection with required pull-request approvals')
+}
+
+$ent = Get-Cap $true 'enterprise'
+ok 'enterprise: everything is available' ($ent.EnvironmentsAvailable -and $ent.BranchProtectionAvailable -and $ent.ApprovalGatesAvailable)
+ok 'enterprise: no limitations and the plan is known' (@($ent.Limitations).Count -eq 0 -and $ent.PlanKnown)
+
+foreach ($unknown in @('unknown', 'business_plus', '')) {
+    $cap = Get-Cap $true $unknown
+    $shown = if ($unknown) { $unknown } else { '(empty)' }
+    ok "plan '$shown': reported as a blind spot, not a pass" ((-not $cap.PlanKnown) -and (Test-Mentions $cap 'blind spot, not a pass'))
+    ok "plan '$shown': nothing is claimed to be missing" ($cap.EnvironmentsAvailable -and $cap.BranchProtectionAvailable)
+}
+ok 'an unexpected plan name is echoed so the operator can see what GitHub said' (Test-Mentions (Get-Cap $true 'business_plus') "reported as 'business_plus'")
+
+$denied = Get-LzGitHubCapabilities -OwnershipModel 'organization' -Probes ([ordered]@{
+    'Owner account' = New-LzProbeResult -Name 'Owner account' -Status Forbidden -Message 'AuthorizationFailed' -Remediation 'Grant read:org.' })
+ok 'an unreadable owner account is a blind spot too' ((-not $denied.PlanKnown) -and (Test-Mentions $denied 'blind spot, not a pass'))
+
+$selected = Get-LzGitHubCapabilities -OwnershipModel 'organization' -Probes ([ordered]@{
+    'Owner account' = New-LzProbeResult -Name 'Owner account' -Status Ok -Items @([pscustomobject]@{ DetectedAsOrg = $true; Plan = 'enterprise' })
+    'Organization Actions policy' = New-LzProbeResult -Name 'Organization Actions policy' -Status Ok -Items @([pscustomobject]@{ AllowedActions = 'selected' }) })
+ok 'the Actions allow-list limitation still combines with the plan result' (@($selected.Limitations).Count -eq 1 -and (Test-Mentions $selected 'allow-list'))
+
 Write-Host "`n== 9. Readiness report renders from a synthetic run ==" -ForegroundColor Cyan
 $cfg = Get-Content "$PSScriptRoot/fixtures/sample-config.json" -Raw | ConvertFrom-Json -Depth 25
 
@@ -115,12 +166,12 @@ $fakeGh = [pscustomobject]@{
     Domain='GitHub'; Owner='contoso-platform'; Repository='contoso_LZ_Deployment'
     Probes=[ordered]@{
         'Authenticated identity' = New-LzProbeResult -Name 'Authenticated identity' -Status Ok -Items @([pscustomobject]@{Login='alex'})
-        'Owner account'          = New-LzProbeResult -Name 'Owner account' -Status Ok -Items @([pscustomobject]@{DetectedAsOrg=$true;Plan='free';DeclarationMatches=$true})
+        'Owner account'          = New-LzProbeResult -Name 'Owner account' -Status Ok -Items @([pscustomobject]@{DetectedAsOrg=$true;Plan='enterprise';DeclarationMatches=$true})
         'Organization runners'   = New-LzProbeResult -Name 'Organization runners' -Status Forbidden -Message 'AuthorizationFailed' -Remediation 'Grant admin:org.'
     }
     Capabilities=[pscustomobject]@{
-        DetectedOwnerType='Organization'; DetectedPlan='free'; DeclaredModel='organization'
-        EnvironmentsAvailable=$true; BranchProtectionAvailable=$true; Limitations=@()
+        DetectedOwnerType='Organization'; DetectedPlan='enterprise'; DeclaredModel='organization'
+        PlanKnown=$true; EnvironmentsAvailable=$true; BranchProtectionAvailable=$true; ApprovalGatesAvailable=$true; Limitations=@()
     }
 }
 $fakeAz = [pscustomobject]@{
