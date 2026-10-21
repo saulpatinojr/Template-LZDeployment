@@ -62,8 +62,8 @@ Running the pull-request plan with `-lock=false` fixes every plan *after* a laye
   identity stays read-only (risks SR2 and SR5 in the factory design record).
 - The operator's account needs **Storage Blob Data Contributor** on the state container (or account)
   to create the blobs. The broker already needed this to create the container with `--auth-mode login`;
-  the error messages now name the role. The operator guide should list it among the operator's
-  permissions (follow-up).
+  the error messages now name the role. The operator guide lists it among the operator's
+  permissions ([credentials checklist, section 3](../guide/02-credentials-checklist.md#3-azure-permissions-the-operators-account-needs)).
 - If a layer's state blob is deleted by mistake and the broker is re-run, it is recreated **empty**,
   exactly as Terraform's own `init` would recreate it. Recover a deleted blob from soft delete or
   versioning (both are on) instead of re-running the broker.
@@ -86,7 +86,7 @@ Running the pull-request plan with `-lock=false` fixes every plan *after* a laye
 
 ## Verification
 
-- `Test-Bootstrap.ps1`: 117 passed, 0 failed. It covers the exact state format, a recording fake of
+- `Test-Bootstrap.ps1`: 119 passed, 0 failed. It covers the exact state format, a recording fake of
   `az` (nothing exists, some exist, all exist, a race, an unauthorised upload, an unauthorised check,
   no layers), the plan-mode audit, and the template contract. Two deliberate breakages (allowing
   overwrite, skipping the existence check) were each caught by the suite.

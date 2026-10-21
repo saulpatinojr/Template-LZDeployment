@@ -36,6 +36,18 @@ the real ones into your engagement notes (never into the repository).
 | Application Administrator (Entra role) | directory-wide | Entra ID → Roles and administrators | Create app registrations and **federated credentials** (the OIDC trust records). Without it, the bootstrap's identity phase fails. |
 | Owner **or** User Access Administrator | management-group root (`client-root`) | Portal → Management groups → Access control (IAM) | Create management groups and assign the least-privilege roles the pipelines run with. |
 | Subscription access | each subscription above | IAM on each subscription | The bootstrap assigns roles scoped to these subscriptions. |
+| Storage Blob Data Contributor (Azure role) | the subscription that will hold the state (the management subscription unless you chose another), or the state resource group | Portal → Subscriptions → *that subscription* → Access control (IAM) → Add role assignment | **Azure Storage backend only.** The broker creates the state container and one empty state file per layer using your sign-in. |
+
+**Why Owner is not enough for the state storage.** Azure separates managing a storage
+account from reading and writing the data inside it, and Owner and Contributor cover
+only the first ([Microsoft: authorize access to blobs with Microsoft Entra ID](https://learn.microsoft.com/azure/storage/blobs/authorize-access-azure-active-directory)).
+Because the state storage has shared keys switched off, the broker works with your
+Entra sign-in, so it needs the data permission too. Grant yourself **Storage Blob Data
+Contributor** *before* you run the broker (the storage account does not exist yet, so
+use the subscription or the resource group), and allow time for it to take effect:
+Microsoft says a new role assignment can take up to about 30 minutes to apply. You
+already hold Owner or User Access Administrator at the root (row above), which is
+what lets you grant it to yourself.
 
 The identities the broker **creates** get less than you have: Contributor +
 Storage Blob Data Contributor for apply, Reader + Storage Blob Data Reader for
@@ -99,15 +111,19 @@ tags, environments and their promotion order, backend choice
 (HCP Terraform or Azure Storage), GitHub owner + repository name for the
 generated repo.
 
-## 7. Two values the wizard deliberately does NOT collect
+## 7. Two values you fill in later (optional `state-hardening` layer only)
 
-These arrive later as commented placeholders in `connectivity.auto.tfvars` —
-this is by design (a recorded contract), so do not look for wizard fields:
+Most engagements skip this section. It applies only if you turn on the optional
+state private-endpoint option in the wizard. The wizard cannot collect these two
+values, because they do not exist until the hub network does. They arrive as commented
+placeholders in `terraform/live/state-hardening/terraform.auto.tfvars` of the
+generated repository, and you fill them in after `platform-connectivity` has applied
+([how, and when](04-generate-and-deploy.md#5-deploy-the-landing-zone-from-the-customer-repository)):
 
-| Variable | Placeholder | Where to get it | When |
-| --- | --- | --- | --- |
-| `management_ip_ranges` | `["203.0.113.0/24"]` | The client's network team — CIDR ranges allowed to reach firewall management. Wildcards (`*`, `0.0.0.0/0`) are rejected. | **Required before the first connectivity plan.** |
-| `log_analytics_workspace_id` | `/subscriptions/aaaaaaaa-…/resourceGroups/rg-mgmt…/providers/Microsoft.OperationalInsights/workspaces/law-…` | Output of the platform-management layer **after it applies** | Recommended; without it, firewall diagnostics and threat-intel alerts are silently not created. |
+| Variable | What to paste | Where to get it |
+| --- | --- | --- |
+| `hub_pe_subnet_id` | The resource ID of the hub's private-endpoint subnet (it contains `/subnets/`). | The hub that `platform-connectivity` built: Portal → Virtual networks → the hub → Subnets. |
+| `blob_private_dns_zone_id` | The resource ID of the `privatelink.blob.core.windows.net` private DNS zone. | The same layer: Portal → Private DNS zones. |
 
 ## 8. Secrets and variables that get created FOR you
 
@@ -119,7 +135,9 @@ Secrets and variables → Actions), not create them by hand:
   identity), `TF_API_TOKEN` (HCP backend only).
 - Variables: `AZURE_REGION`, `AZURE_REGION_CODE`, `ORG_PREFIX`, `TF_VERSION`,
   `TERRAFORM_CLOUD_ENABLED`, `TF_CLOUD_ORGANIZATION`, `TF_CLOUD_WORKSPACE`.
-- Environments: `dev`, `prod`, `hub` — each with a required reviewer and
+- Environments: one for each environment in your wizard choices. A default run
+  gives `bootstrap`, `connectivity` and `management`, plus the application
+  environments you add (for example `prod`). Each gets a required reviewer and a
   protected-branch deployment policy. (On a private repository the required reviewer
   needs GitHub Enterprise; see [Which GitHub plan do you need?](#which-github-plan-do-you-need).)
 

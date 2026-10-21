@@ -58,19 +58,23 @@ nothing else.**
   and confirm the plan job passes with the plan identity. Until then this fix is
   prepared, not proven live.
 
-## What this does not fix
+## What this did not cover, and what fixed it
 
-`-lock=false` covers every plan **after** a layer's state file exists. It does not cover the
-**first** plan for a layer that has never been applied. When the state blob does not exist,
+`-lock=false` covers every plan **after** a layer's state file exists. It did not cover the
+**first** plan for a layer that had never been applied. When the state blob does not exist,
 Terraform's azurerm backend takes a lock with operation `"init"`, writes an empty state and
 persists it, during `terraform init` and regardless of `-lock=false`
 ([`backend_state.go`, `StateMgr`, Terraform 1.15.8](https://github.com/hashicorp/terraform/blob/v1.15.8/internal/backend/remote-state/azure/backend_state.go#L107-L153)).
-The plan identity cannot do that write, and the broker creates the storage account and container
-but not each layer's `<layer>.tfstate` blob. So on a brand-new estate the first pull-request plan
-for a layer is expected to fail at `terraform init`. This was raised in review and verified against
-the source. It is tracked, with options and a recommendation (the broker initialises any missing
-state blob), in [issue #140](https://github.com/saulpatinojr/Template-LZDeployment/issues/140).
-It is not reproduced against a live backend.
+The plan identity cannot do that write, and at the time the broker created the storage account and
+container but not each layer's `<layer>.tfstate` blob. So on a brand-new estate the first
+pull-request plan for a layer was expected to fail at `terraform init`. This was raised in review and
+verified against the source, then tracked in
+[issue #140](https://github.com/saulpatinojr/Template-LZDeployment/issues/140).
+
+**It is resolved by [decision 0031](0031-the-broker-creates-each-layers-state-blob.md):** the broker
+now creates each layer's state blob, so the plan identity only ever reads it. That fix is covered by
+tests and a real Terraform reading the file it writes. Like this decision, it has not been run against
+a live backend.
 
 ## Alternatives considered
 

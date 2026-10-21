@@ -51,6 +51,14 @@ declared subscription scopes; OIDC subjects are exactly `pull_request` or
 workspace prefix, environments, and branch-protection settings match the
 engagement.
 
+**Before you apply, check one permission (Azure Storage backend only).** The broker
+creates the state container, and one empty state file per layer, using *your* sign-in.
+Azure treats managing a storage account and reading or writing the data inside it as two
+separate permissions, and **Owner and Contributor only cover the first**. Your account
+needs **Storage Blob Data Contributor** on the state storage. How to grant it, and why, is
+in [the credentials checklist](02-credentials-checklist.md#3-azure-permissions-the-operators-account-needs).
+Without it the broker stops at the state step with an authorization error from Azure.
+
 ```powershell
 pwsh ./bootstrap-broker.ps1 -Apply
 ```
@@ -127,11 +135,15 @@ Work in the **generated repository** from here on.
    named in the wizard: shared-key access off, versioning and soft delete on, and a
    delete lock on the resource group. Each layer's `backend.hcl` was rendered with
    those exact names, so there is nothing to apply first and no placeholder to fill
-   in. On the HCP Terraform backend the broker created one workspace per layer.
-2. **Fill the operator placeholders** in `connectivity.auto.tfvars`:
-   uncomment and set `management_ip_ranges` now (required; wildcards
-   rejected). Leave `log_analytics_workspace_id` for the loop-back in step 4.
-3. **Open a pull request** with the configuration. The `terraform-plan`
+   in. The broker also created one **empty state file** for each layer
+   (`<layer>.tfstate`). A state file is Terraform's record of what it has built.
+   Having it there from the start means the first pull-request plan only has to read
+   it, which is all the read-only plan identity is allowed to do
+   ([decision 0031](../decisions/0031-the-broker-creates-each-layers-state-blob.md)).
+   If you set an estate up before the broker did this, re-run the broker: it is safe
+   to repeat and only adds files that are missing. On the HCP Terraform backend the
+   broker created one workspace per layer instead.
+2. **Open a pull request** with the configuration. The `terraform-plan`
    workflow runs per changed layer as the **Reader-only plan identity**
    (`-lock=false`, advisory). The `azure-auth-test` workflow proves the OIDC
    token exchange. Read every plan; there must be no unintended destroy or
@@ -155,36 +167,53 @@ Work in the **generated repository** from here on.
    ```
 
    Then re-run the pull-request checks and confirm the Azure login step passes.
-4. **Merge to deploy.** `terraform-apply` runs layers in dependency order,
-   each behind its gated environment approval (on a private repository that
-   approval needs GitHub Enterprise; on Pro or Team, branch protection with
-   required pull-request approvals is the control. See "Which GitHub plan do you
-   need?" in the [credentials checklist](02-credentials-checklist.md)):
+3. **Apply each layer, one at a time.** Merging a pull request does **not** deploy
+   anything. Applying is a deliberate manual step: in the customer repository open
+   **Actions → Terraform Apply → Run workflow**, then choose a **layer** and the
+   **environment** that belongs to it. Each run:
 
-   ```
-   global → platform-connectivity → platform-management → workloads-prod → sandbox
-   ```
+   - checks out the default branch, not the branch you started it from;
+   - refuses a layer that is paired with the wrong environment (for example it will
+     not run `platform-connectivity` through `management`);
+   - waits at that environment's approval gate (on a private repository that gate
+     needs GitHub Enterprise; on Pro or Team, branch protection with required
+     pull-request approvals is the control. See "Which GitHub plan do you need?" in
+     the [credentials checklist](02-credentials-checklist.md));
+   - stops if the plan would destroy anything.
 
-   **Loop-back:** after `platform-management` applies, copy its
-   `log_analytics_workspace_id` output into `connectivity.auto.tfvars` via a
-   follow-up PR — until then, hub firewall diagnostics and threat-intel alerts
-   are silently not created.
-5. **Known first-apply traps** (tracked in [TODO.md](../../TODO.md)): unset
-   `management_ip_ranges` (step 2); and a missing sandbox RBAC grant — if `sandbox`
-   fails with `AuthorizationFailed` on a role assignment, the deploying identity
-   lacks RBAC Administrator on the sandbox subscription. The broker grants that only
-   when the sandbox subscription was set in the wizard before it ran, so set it and
-   re-run the broker (see the [credentials checklist](02-credentials-checklist.md)).
+   Run the layers in this order, and wait for each to finish before starting the next:
 
-   One more, on the Azure Storage backend: the **first** pull-request plan for a layer
-   that has never been applied can fail at `terraform init` with `failed to lock azure
-   state`. That layer's state file does not exist yet, Terraform tries to create it, and
-   the read-only plan identity cannot. It is a known gap, not something you did wrong
-   ([issue #140](https://github.com/saulpatinojr/Template-LZDeployment/issues/140)).
+   | Order | Layer | Environment | Why it goes here |
+   | --- | --- | --- | --- |
+   | 1 | `platform-management` | `management` | Creates the monitoring workspace the next layer needs. |
+   | 2 | `global` | `bootstrap` | Reads `platform-management`'s saved state, so it cannot go first. |
+   | 3 | `platform-connectivity` | `connectivity` | The hub network and firewall. |
+   | 4 | `state-hardening`, only if you turned on the state private-endpoint option in the wizard | `management` | Needs two values from the hub that step 3 built (see below). |
+
+   Your wizard choices can switch on more layers, each with its own environment:
+   `platform-identity` (`identity`), `workloads-prod` (`prod`), `sandbox` (`sandbox`)
+   and `workloads-nonprod` (`dev`, `test` or `uat`). The generated repository's
+   `README.md` lists exactly which layers were rendered for you.
+
+   **Moving values between layers.** You normally copy nothing by hand: `global`
+   reads what it needs from `platform-management`'s saved state by itself. The one
+   exception is the optional `state-hardening` layer. After `platform-connectivity`
+   has applied, open a pull request that edits
+   `terraform/live/state-hardening/terraform.auto.tfvars`: uncomment
+   `hub_pe_subnet_id` and `blob_private_dns_zone_id`, and paste in the matching
+   resource IDs from the hub (its private-endpoint subnet, and the
+   `privatelink.blob.core.windows.net` private DNS zone). Until both are set, that
+   layer's plan fails on purpose, and the error says what each value should look like.
+4. **A known first-apply trap** (tracked in [TODO.md](../../TODO.md)): a missing
+   sandbox RBAC grant. If `sandbox` fails with `AuthorizationFailed` on a role
+   assignment, the deploying identity lacks RBAC Administrator on the sandbox
+   subscription. The broker grants that only when the sandbox subscription was set in
+   the wizard before it ran, so set it and re-run the broker (see the
+   [credentials checklist](02-credentials-checklist.md)).
 
 The landing zone is now stored and managed from the customer repository:
-changes go through PRs there, plans run read-only on PRs, applies run through
-gated environments on merge.
+changes go through PRs there, plans run read-only on PRs, and applies are started by
+hand, one layer at a time, through the gated environments.
 
 ## 6. Dispose of the copy
 
