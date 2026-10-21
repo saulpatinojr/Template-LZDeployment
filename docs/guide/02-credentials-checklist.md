@@ -72,7 +72,10 @@ and plans** yourself.
 
 **If you are on Pro or Team:** the environments are created but cannot hold an approval.
 Turn on branch protection with required pull-request approvals, so that a person reviews
-every change before it can reach apply.
+every change before it can reach apply. Also tick **Enforce for administrators** in the
+wizard (it is off by default); otherwise a repository administrator can skip the approval.
+With it on, someone other than the author has to approve each change, so a one-person team
+cannot merge its own pull requests.
 
 Sources, checked 2026-10-21 (GitHub changes plan features from time to time):
 [Managing environments for deployment](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments),

@@ -136,6 +136,7 @@ foreach ($case in @(@{ Org = $false; Plan = 'pro' }, @{ Org = $true; Plan = 'tea
     ok "$label`: approval gates are NOT available on private repositories" (-not $cap.ApprovalGatesAvailable)
     ok "$label`: exactly one limitation, and it names Enterprise and required reviewers" (@($cap.Limitations).Count -eq 1 -and (Test-Mentions $cap 'required reviewers') -and (Test-Mentions $cap 'Enterprise'))
     ok "$label`: the limitation tells the operator what to do instead" (Test-Mentions $cap 'branch protection with required pull-request approvals')
+    ok "$label`: and says administrators must be enforced too, or they can skip the approval" (Test-Mentions $cap 'Enforce for administrators')
 }
 
 $ent = Get-Cap $true 'enterprise'
