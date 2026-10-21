@@ -79,7 +79,7 @@ terraform login                   # HCP Terraform backend only; skip for Azure S
    | --- | --- |
    | `lz-config.json` | **The contract.** Every downstream tool reads this; everything else is derived from it. |
    | `terraform.auto.tfvars` | Variables for the `global` layer. |
-   | `connectivity.auto.tfvars` | Variables for `platform-connectivity` — includes the two commented operator placeholders (`management_ip_ranges`, `log_analytics_workspace_id`). |
+   | `connectivity.auto.tfvars` | Variables for `platform-connectivity`. |
    | `backend.hcl` | Partial backend config for `terraform init` (one per layer — replace `<layer>` in the key/workspace name per layer). |
    | `environments.json` | Environment definitions, promotion order, approval gates — consumed by the bootstrap broker. |
    | `deployment-metadata.json` | Provenance: factory and schema versions, timestamp, release gates. |

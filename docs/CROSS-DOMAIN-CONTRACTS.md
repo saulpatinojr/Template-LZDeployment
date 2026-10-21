@@ -123,6 +123,14 @@ with `-lock=false`; apply keeps its lock
 ([decision 0030](decisions/0030-azurerm-pr-plans-run-without-the-state-lock.md)).
 Do not give the plan identity write access to "fix" a lock error.
 
+The broker also creates each layer's state blob, so the read-only plan identity never has to
+([decision 0031](decisions/0031-the-broker-creates-each-layers-state-blob.md)). That makes the
+blob name a contract between two files: the `key` line of
+`factory/templates/terraform/live/_layer/backend.hcl.tmpl` (`<layer>.tfstate`) and
+`Get-LzStateBlobKey` in `factory/bootstrap/LZFactory.Bootstrap.psm1`. Change one without the
+other and the blob the broker creates is not the one Terraform looks for, so the first
+pull-request plan fails again. `Test-Bootstrap.ps1` fails if they drift apart.
+
 **Corrected 2026-08-28.** The previous span list named `scripts/New-BackendConfig.ps1`
 (deleted), `terraform/backend-bootstrap/`, all `terraform/live/*/backend.hcl`, and
 the `workloads-{prod,nonprod}` corpus templates — none of which exist. The
