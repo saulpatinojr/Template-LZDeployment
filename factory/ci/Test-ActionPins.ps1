@@ -32,9 +32,9 @@ $CANONICAL_PINS = [ordered]@{
     'azure/login'                       = @{ sha = 'a641126d1b8aa4d1fa005f4f92df94a3a4c4c906'; version = 'v3.1.0' }
     'hashicorp/setup-terraform'         = @{ sha = 'dfe3c3f87815947d99a8997f908cb6525fc44e9e'; version = 'v4.0.1' }
     'terraform-linters/setup-tflint'    = @{ sha = '6e1e0642c0289bd619021bf6b34e3c08ed1e005a'; version = 'v6.3.0' }
-    # v3.99.2 tag SHA verified against the upstream repo (git ls-remote) after
-    # the Dependabot bump in #131, which superseded the #124 bump to v3.97.1.
-    'trufflesecurity/trufflehog'        = @{ sha = 'e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9'; version = 'v3.99.2' }
+    # v3.99.7 tag SHA verified against the upstream repo (git ls-remote) for
+    # the Dependabot bump in #146.
+    'trufflesecurity/trufflehog'        = @{ sha = '31ce31ee1abbcc7dc8eee5764c17121c3044c8b2'; version = 'v3.99.7' }
 }
 # ─────────────────────────────────────────────────────────────────────────────
 
