@@ -23,7 +23,7 @@ $ErrorActionPreference = 'Stop'
 $CANONICAL_PINS = [ordered]@{
     'actions/checkout'                  = @{ sha = '3d3c42e5aac5ba805825da76410c181273ba90b1'; version = 'v7.0.1' }
     'actions/configure-pages'           = @{ sha = '45bfe0192ca1faeb007ade9deae92b16b8254a0d'; version = 'v6.0.0' }
-    'actions/dependency-review-action'  = @{ sha = 'a1d282b36b6f3519aa1f3fc636f609c47dddb294'; version = 'v5.0.0' }
+    'actions/dependency-review-action'  = @{ sha = 'bbc44d14a204704ccc493733616cd1e93a0321ec'; version = 'v5.0.1' }
     'actions/deploy-pages'              = @{ sha = '368f82528645a54fb793d4d04e342629a3f51346'; version = 'v5.0.1' }
     'actions/download-artifact'         = @{ sha = '9000827ccba6bdab643e8b6fd33ac0654aef8333'; version = 'v8.0.2' }
     'actions/github-script'             = @{ sha = '3a2844b7e9c422d3c10d287c895573f7108da1b3'; version = 'v9.0.0' }
@@ -32,9 +32,9 @@ $CANONICAL_PINS = [ordered]@{
     'azure/login'                       = @{ sha = 'a641126d1b8aa4d1fa005f4f92df94a3a4c4c906'; version = 'v3.1.0' }
     'hashicorp/setup-terraform'         = @{ sha = 'dfe3c3f87815947d99a8997f908cb6525fc44e9e'; version = 'v4.0.1' }
     'terraform-linters/setup-tflint'    = @{ sha = '6e1e0642c0289bd619021bf6b34e3c08ed1e005a'; version = 'v6.3.0' }
-    # v3.99.7 tag SHA verified against the upstream repo (git ls-remote) for
-    # the Dependabot bump in #146.
-    'trufflesecurity/trufflehog'        = @{ sha = '31ce31ee1abbcc7dc8eee5764c17121c3044c8b2'; version = 'v3.99.7' }
+    # v3.100.0 tag SHA verified against the upstream repo (git ls-remote) for
+    # the Dependabot bump in #148.
+    'trufflesecurity/trufflehog'        = @{ sha = 'd232362a64a09a9e7d58267b8f5acef00ae90e23'; version = 'v3.100.0' }
 }
 # ─────────────────────────────────────────────────────────────────────────────
 
